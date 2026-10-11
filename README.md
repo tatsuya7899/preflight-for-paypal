@@ -17,11 +17,13 @@ PayPal sandbox認証情報の取得が詰まっている:
 ## ディレクトリ
 
 - `bd/` — business-design成果物(生成記録・前提整理・Gate判定)
-  - `GEN-paypal-ai-hack-2026_candidates.md` — 全生成・殺し・スイープの記録(追補4まで)
+  - `GEN-paypal-ai-hack-2026_candidates.md` — 全生成・殺し・スイープの記録(追補5まで)
   - `IDEA-seller-protection-checker_premises.md` — 本命の前提整理+Gate 0条件+Guzco部分占有の更新
   - `IDEA-agent-pay-test-harness_premises.md` / `IDEA-agent-spend-watch_premises.md` — 殺された候補(参照用)
 
 ## 関連資産(リポジトリ外)
 
 - `/Users/tatsuyasasaki/Developer/_incubator/agent-pay-guardian/sandbox/order.py` — PayPal sandbox対話スクリプト(改造して実測に使う)
+- `~/Developer/_ops/docs/ref/REF-paypal-winners-analysis_20261010.md` — 勝者分析(審査5軸)
+- `~/Developer/_ops/docs/ref/REF-hackathon-ai-screening_20261010.md` — AI審査フィルター対策(**提出時に必読**)
 - `~/.agents/skills/business-design/` — 本PJの実走でv1.20〜v1.22まで改訂済み

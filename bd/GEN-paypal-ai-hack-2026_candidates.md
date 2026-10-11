@@ -303,3 +303,28 @@ M5-1が死んだ理由「実取引に意図データが無い」は、**テス�
 | 差分 | 「出荷前の保護適合診断」=空き(紛争後処理とリスクスコアの間の穴) |
 
 **結論**: 「非agentic×加盟店」セルの探索で、全工程を通じて初めて全軸が揃った候補(SP-1 Seller Protection適合チェッカー)が出た。agentic系の死に方(不能/占有/荷重不足/自己完結)の全てを回避している。
+
+## 追補5(2026-10-11・生成の分業[v1.22]の実走 — 2系統並列生成)
+
+**設計**: business-design v1.22「生成の分業: コンテキスト切断の原則」の初実走。系統の違う2個体を並列起動し、両者とも殺し履歴・賞名の強調・SP-1の存在・監督の推奨を委任文から除外(クリーンルーム条件)。
+
+| 系統 | 与えたもの | 結果 |
+|---|---|---|
+| **α(クリーンルーム系)** | Edge棚卸し+公開API面(orders/invoices/disputes/products/subscriptionPlans/shipment/payouts)+対象者=加盟店側のみ | 15案生成、上位3案=①紛争対応Copilot ②回収交渉Autopilot ③PayPal Console拡張 |
+| **β(スポンサーネイティブ系)** | 同制約+「スポンサーが文書化したが運用を手作業に委ねた場所を探せ」のヒューリスティック | 10案生成、**SP-1と同一点に独立収束**(「出荷前Seller Protection関所」として1位選出) |
+
+### 判定
+
+- **収束の証拠**: βが殺し履歴・既存候補を知らない状態でSP-1と同一点に到達=ヒューリスティックの最適解がSP-1を指す裏付け。発散の失敗ではなく独立収束
+- **発散の実績**: αは別の空き地(紛争対応・回収交渉・Console操作)を生成=未探索余地の輪郭を確認
+- **βの新発見(競合)**: **Guzco(guzco.ai/solutions/paypal)が「Seller Protection requirements checked at checkout and pre-shipment」を紛争対応done-for-youサービスの一機能として提供中** — SP-1スイープの「同ジョブ製品なし」を一部訂正(ただしセルフサーブ型の主看板製品は引き続き未発見。詳細=IDEA-seller-protection-checker_premises.mdの更新節)
+- **αの新発見(技術)**: sandbox Disputes APIは全ライフサイクル再現可能(create dispute/require-evidence/provide-evidence/settleの限定メソッド+buyer側クレデンシャル+PayPal-Auth-Assertion JWT)=「保護外注文が紛争に負ける」まで実演できる可能性
+- **βの注意点**: payouts APIは承認制の可能性(材料記述「申請不要」と先行記録「承認制」が矛盾・未解決 — 使用する案の場合は実測で確定要)
+
+### αの上位3案(ヘッジ候補として記録 — SP-1がsandboxゲートで死んだ場合の次候補)
+
+| 案 | 15秒ピッチ | 占有状況(αの検索) | 備考 |
+|---|---|---|---|
+| 紛争対応Copilot | 「紛争が来た瞬間、AIが証拠パッケージを組み立て反論書を書いて提出までやる」 | **密**(Chargeflow・DisputeDash・Guzco・Justt・Chargehound[PayPal買収済み]) — ただし拡張ネイティブ×長尾無料の隙間で勝負可能 | sandbox全工程デモ可=実演性は最高 |
+| 回収交渉Autopilot | 「未払い請求書をAIが追い続け、『分割なら払える』に部分払い請求で応答する」 | **薄**(Paidly・Knockly等はPayPalリンク添付止まり、Invoices API内側の交渉型は空白) | 買い手返信の取り込み経路(専用アドレス/拡張)が設計課題 |
+| PayPal Console拡張 | 「PayPalの画面にAI操縦席。『30日超の未払い全部に督促』で計画→確認→実行」 | **最も空き**(加盟店ops向けNLコンソール未発見) | 「APIラッパー」認定リスク=製品層を厚く要する |

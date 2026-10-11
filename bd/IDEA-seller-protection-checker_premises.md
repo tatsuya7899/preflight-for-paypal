@@ -76,7 +76,7 @@ Created: 2026-10-11 / モード: 早駆け(提出物型 — PayPal AI Hackathon�
 ## 競合スイープの検索語と出典(実行済み記録)
 | 層 | 検索語 | 出典 |
 |---|---|---|
-| 同ジョブ | "PayPal Seller Protection eligibility checker before shipping" / "is this order protected" tool | **「出荷前の適合診断」を名乗る製品なし** — 検索は汎用在庫・保険・裁判文書に散る |
+| 同ジョブ | "PayPal Seller Protection eligibility checker before shipping" / "is this order protected" tool | ~~「出荷前の適合診断」を名乗る製品なし~~ **→下の更新節で訂正: Guzcoが同ジョブをサービス一機能として提供済み(セルフサーブ製品は引き続き未発見)** |
 | 別形同ジョブ | "chargeback prevention evidence readiness" / "pre-dispute" | Verdikx(証拠保存)・DisputeOps(係争後)・Verifi(自動返金)=いずれも出荷前の適合診断でない |
 | スポンサー自前 | PayPal公式文書 | 対象旗は出すが理由・処方・詐欺照合なし。詐欺パターンと条件は文書化=**スポンサーネイティブ空白が実在** |
 | コード層 | GitHub "seller protection" "paypal eligibility" | (補足: ツール系の占有者はリポジトリに住む——コード層スイープも実行済み・該当なし) |
