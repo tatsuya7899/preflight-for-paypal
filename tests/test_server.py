@@ -1,0 +1,233 @@
+"""Tests for backend/server.py (localhost HTTP server).
+
+Test basis: SPEC-preflight-checker_design.md
+  - "データモデル・インターフェース" section (GET /health, POST /check, POST /track
+    request/response shapes)
+  - "非機能(性能・権限・セキュリティ・ログ)" section (X-Preflight-Token required on
+    /track, 403 on missing/invalid token, carrier OTHER requires carrier_name_other,
+    PayPal API errors are relayed with upstream status rather than flattened to 500)
+  - "ID契約(P0-1)" section (order_id input resolved to capture_id via
+    paypal.resolve_capture_id before evaluation)
+
+Written from the design spec's endpoint contracts, not from reading server.py's
+implementation. PayPal/LLM calls are mocked — no real network access.
+"""
+import json
+import os
+import sys
+import unittest
+from unittest import mock
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from backend import server
+
+FIXTURES = os.path.join(os.path.dirname(__file__), "..", "backend", "fixtures")
+
+
+def load_fixture(name):
+    with open(os.path.join(FIXTURES, name)) as f:
+        return json.load(f)
+
+
+def _fixture_names():
+    return [f for f in os.listdir(FIXTURES) if f.startswith("order_")]
+
+
+class HealthTest(unittest.TestCase):
+    def test_health_reports_llm_flag_true(self):
+        with mock.patch.object(server.meaning, "llm_available", return_value=True):
+            status, payload = (200, {"ok": True, "llm": server.meaning.llm_available()})
+        self.assertEqual(payload, {"ok": True, "llm": True})
+
+    def test_health_reports_llm_flag_false(self):
+        with mock.patch.object(server.meaning, "llm_available", return_value=False):
+            payload = {"ok": True, "llm": server.meaning.llm_available()}
+        self.assertEqual(payload, {"ok": True, "llm": False})
+
+
+class HandleCheckTest(unittest.TestCase):
+    def setUp(self):
+        fixtures = _fixture_names()
+        if not fixtures:
+            self.skipTest("no order_*.json fixtures available")
+        self.order = load_fixture(fixtures[0])
+        self.capture_id = (
+            self.order["purchase_units"][0]["payments"]["captures"][0]["id"]
+        )
+
+    def test_check_by_capture_id_returns_verdict(self):
+        with mock.patch.object(server.paypal, "resolve_order_id", return_value=self.order["id"]), \
+             mock.patch.object(server.paypal, "get_order", return_value=self.order), \
+             mock.patch.object(server.paypal, "get_trackers", return_value={"trackers": []}), \
+             mock.patch.object(server.meaning, "run", return_value={"ran": False, "semantic": None,
+                                                                      "fraud_warnings": [], "unassessable_patterns": []}):
+            status, verdict = server.handle_check({"capture_id": self.capture_id})
+
+        self.assertEqual(status, 200)
+        self.assertEqual(verdict["order_id"], self.order["id"])
+        self.assertIn("checks", verdict)
+        self.assertIn("summary", verdict)
+        self.assertIn("flags", verdict)
+
+    def test_check_by_order_id_resolves_capture_id(self):
+        with mock.patch.object(server.paypal, "resolve_capture_id", return_value=self.capture_id) as resolve, \
+             mock.patch.object(server.paypal, "resolve_order_id", return_value=self.order["id"]), \
+             mock.patch.object(server.paypal, "get_order", return_value=self.order), \
+             mock.patch.object(server.paypal, "get_trackers", return_value={"trackers": []}), \
+             mock.patch.object(server.meaning, "run", return_value={"ran": False, "semantic": None,
+                                                                      "fraud_warnings": [], "unassessable_patterns": []}):
+            status, verdict = server.handle_check({"order_id": self.order["id"]})
+
+        resolve.assert_called_once_with(self.order["id"])
+        self.assertEqual(status, 200)
+        self.assertEqual(verdict["capture_id"], self.capture_id)
+
+    def test_check_relays_upstream_http_error_status(self):
+        error_resp = {"_http_error": 404, "_body": "NOT_FOUND"}
+        with mock.patch.object(server.paypal, "resolve_order_id", return_value=self.order["id"]), \
+             mock.patch.object(server.paypal, "get_order", return_value=error_resp):
+            status, payload = server.handle_check({"capture_id": self.capture_id})
+
+        self.assertEqual(status, 404)
+        self.assertEqual(payload, error_resp)
+
+    def test_check_requires_capture_id_or_order_id(self):
+        status, payload = server.handle_check({})
+        self.assertEqual(status, 400)
+        self.assertIn("error", payload)
+
+
+class HandleTrackTest(unittest.TestCase):
+    def test_track_otherwise_valid_registers_and_reads_back(self):
+        add_resp = {"trackers": [{"transaction_id": "CAP1", "status": "SHIPPED"}]}
+        readback = {"trackers": [{"transaction_id": "CAP1", "status": "SHIPPED",
+                                   "tracking_number": "1Z999"}]}
+        with mock.patch.object(server.paypal, "add_tracker", return_value=add_resp) as add, \
+             mock.patch.object(server.paypal, "get_trackers", return_value=readback):
+            status, payload = server.handle_track({
+                "capture_id": "CAP1",
+                "tracking_number": "1Z999",
+                "carrier": "UPS",
+            })
+
+        add.assert_called_once_with("CAP1", "1Z999", "UPS", None)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload, readback)
+
+    def test_track_other_carrier_requires_carrier_name_other(self):
+        status, payload = server.handle_track({
+            "capture_id": "CAP1",
+            "tracking_number": "1Z999",
+            "carrier": "OTHER",
+        })
+        self.assertEqual(status, 400)
+        self.assertIn("error", payload)
+
+    def test_track_other_carrier_with_name_succeeds(self):
+        with mock.patch.object(server.paypal, "add_tracker", return_value={}) as add, \
+             mock.patch.object(server.paypal, "get_trackers", return_value={"trackers": []}):
+            status, payload = server.handle_track({
+                "capture_id": "CAP1",
+                "tracking_number": "1Z999",
+                "carrier": "OTHER",
+                "carrier_name_other": "Regional Courier Co",
+            })
+        add.assert_called_once_with("CAP1", "1Z999", "OTHER", "Regional Courier Co")
+        self.assertEqual(status, 200)
+
+    def test_track_relays_upstream_http_error_status(self):
+        error_resp = {"_http_error": 422, "_body": "INVALID_TRACKING_NUMBER"}
+        with mock.patch.object(server.paypal, "add_tracker", return_value=error_resp):
+            status, payload = server.handle_track({
+                "capture_id": "CAP1",
+                "tracking_number": "bad",
+                "carrier": "UPS",
+            })
+        self.assertEqual(status, 422)
+        self.assertEqual(payload, error_resp)
+
+    def test_track_rejects_invalid_carrier(self):
+        status, payload = server.handle_track({
+            "capture_id": "CAP1",
+            "tracking_number": "1Z999",
+            "carrier": "SPACE_FREIGHT",
+        })
+        self.assertEqual(status, 400)
+        self.assertIn("error", payload)
+
+
+class TokenAuthTest(unittest.TestCase):
+    """X-Preflight-Token gate on /track, exercised through the live HTTP server."""
+
+    def setUp(self):
+        import threading
+        import http.client
+
+        self.http_client = http.client
+        # Use a throwaway token path so we never touch the real
+        # ~/.config/studio/preflight-token used by a running dev instance.
+        self._token_patch = mock.patch.object(
+            server, "TOKEN_PATH", "/tmp/preflight-token-test-" + os.urandom(4).hex()
+        )
+        self._token_patch.start()
+        self.httpd = server.make_server(port=0)
+        self.port = self.httpd.server_address[1]
+        self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
+        self.thread.start()
+
+    def tearDown(self):
+        self.httpd.shutdown()
+        self.httpd.server_close()
+        self.thread.join(timeout=2)
+        self._token_patch.stop()
+        try:
+            os.remove(server.TOKEN_PATH)
+        except OSError:
+            pass
+
+    def _post(self, path, body, headers=None):
+        conn = self.http_client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        conn.request("POST", path, body=json.dumps(body),
+                     headers={"Content-Type": "application/json", **(headers or {})})
+        resp = conn.getresponse()
+        status = resp.status
+        payload = json.loads(resp.read() or b"{}")
+        conn.close()
+        return status, payload
+
+    def test_track_without_token_is_403(self):
+        status, payload = self._post("/track", {
+            "capture_id": "CAP1", "tracking_number": "1Z999", "carrier": "UPS",
+        })
+        self.assertEqual(status, 403)
+
+    def test_track_with_wrong_token_is_403(self):
+        status, payload = self._post("/track", {
+            "capture_id": "CAP1", "tracking_number": "1Z999", "carrier": "UPS",
+        }, headers={"X-Preflight-Token": "wrong-token"})
+        self.assertEqual(status, 403)
+
+    def test_track_with_correct_token_passes_auth(self):
+        token = server.read_token()
+        with mock.patch.object(server.paypal, "add_tracker", return_value={}), \
+             mock.patch.object(server.paypal, "get_trackers", return_value={"trackers": []}):
+            status, payload = self._post("/track", {
+                "capture_id": "CAP1", "tracking_number": "1Z999", "carrier": "UPS",
+            }, headers={"X-Preflight-Token": token})
+        self.assertEqual(status, 200)
+
+    def test_health_does_not_require_token(self):
+        conn = self.http_client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        conn.request("GET", "/health")
+        resp = conn.getresponse()
+        status = resp.status
+        payload = json.loads(resp.read())
+        conn.close()
+        self.assertEqual(status, 200)
+        self.assertIn("ok", payload)
+        self.assertIn("llm", payload)
+
+
+if __name__ == "__main__":
+    unittest.main()
