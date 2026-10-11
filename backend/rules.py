@@ -37,6 +37,7 @@ def _row(condition, status, basis):
         "clause": template["clause"],
         "prescription": template["prescription"],
         "expected_evidence": list(template["expected_evidence"]),
+        "unfixable_for_order": bool(template.get("unfixable_for_order")),
     }
 
 

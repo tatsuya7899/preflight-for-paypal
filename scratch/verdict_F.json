@@ -48,7 +48,8 @@
     "expected_evidence": [
      "PROOF_OF_DELIVERY_ADDRESS",
      "TRACKING_INFORMATION"
-    ]
+    ],
+    "unfixable_for_order": true
    },
    {
     "condition": "TRACKING_REQUIRED",
@@ -59,7 +60,8 @@
     "expected_evidence": [
      "PROOF_OF_FULFILLMENT",
      "TRACKING_INFORMATION"
-    ]
+    ],
+    "unfixable_for_order": false
    },
    {
     "condition": "PHYSICAL_GOODS_DECLARED",
@@ -69,17 +71,19 @@
     "prescription": "Item is not declared as physical goods — evaluate under the Intangible Goods Additional Requirements path instead",
     "expected_evidence": [
      "ITEM_DESCRIPTION_OR_LISTING"
-    ]
+    ],
+    "unfixable_for_order": false
    },
    {
     "condition": "INTANGIBLE_ADDITIONAL_REQS",
     "status": "not_assessable",
-    "basis": "no digital/service signal present",
+    "basis": "not evaluated: meaning layer did not run (meaning.ran=false)",
     "clause": "US Seller Protection terms — Intangible Goods Additional Requirements",
     "prescription": "Keep fulfillment logs/proof of service delivery per US Intangible Goods Additional Requirements",
     "expected_evidence": [
      "PROOF_OF_SERVICE_OR_DELIVERY_LOG"
-    ]
+    ],
+    "unfixable_for_order": false
    },
    {
     "condition": "HIGH_VALUE_SIGNATURE",
@@ -89,7 +93,8 @@
     "prescription": "Use signature confirmation",
     "expected_evidence": [
      "SIGNATURE_CONFIRMATION"
-    ]
+    ],
+    "unfixable_for_order": false
    },
    {
     "condition": "SHIP_WITHIN_DAYS",
@@ -100,7 +105,8 @@
     "expected_evidence": [
      "SHIPMENT_DATE_RECORD",
      "PROOF_OF_FULFILLMENT"
-    ]
+    ],
+    "unfixable_for_order": false
    },
    {
     "condition": "EXCLUDED_CATEGORY",
@@ -110,30 +116,13 @@
     "prescription": "Category excluded from Seller Protection",
     "expected_evidence": [
      "CATEGORY_DOCUMENTATION"
-    ]
+    ],
+    "unfixable_for_order": true
    }
   ],
   "meaning": {
-   "ran": true,
-   "semantic": {
-    "ran": false,
-    "semantic": null,
-    "fraud_warnings": [],
-    "unassessable_patterns": [
-     {
-      "name": "MISMATCHED_SHIP_TO_VS_BILLING_COUNTRY",
-      "reason": "payer billing country is not exposed by the Orders API response used here"
-     },
-     {
-      "name": "RAPID_REPEAT_HIGH_VALUE_BUYER",
-      "reason": "requires cross-order buyer history, not available from a single capture/order lookup"
-     },
-     {
-      "name": "FIRST_TIME_BUYER_EXPEDITED_SHIPPING_REQUEST",
-      "reason": "buyer transaction history and shipping-speed preference are not exposed by this API"
-     }
-    ]
-   },
+   "ran": false,
+   "semantic": null,
    "fraud_warnings": [
     {
      "name": "NO_SHIPPING_ADDRESS_ON_FILE",

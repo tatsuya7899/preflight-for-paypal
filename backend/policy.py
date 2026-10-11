@@ -35,6 +35,9 @@ EVIDENCE_CATEGORY_DOCUMENTATION = "CATEGORY_DOCUMENTATION"
 #   fixed_status   : optional. If set, this check's status is always this value
 #                     regardless of evaluation (used for INTANGIBLE_ADDITIONAL_REQS,
 #                     which is prescription-only per design doc — never "fail").
+#   unfixable_for_order : optional. If true, a "fail" verdict on this check
+#                     cannot be remedied for the order being viewed — its
+#                     referenced evidence slots are unfillable (UI annotation).
 CHECKS = [
     {
         "condition": "SHIP_TO_TRANSACTION_ADDRESS",
@@ -44,6 +47,7 @@ CHECKS = [
             "Do not ship — obtain the buyer's confirmed address via a new transaction"
         ),
         "prescription_address_mismatch": "Ship only to the address on the transaction",
+        "unfixable_for_order": True,
         "expected_evidence": [
             EVIDENCE_PROOF_OF_DELIVERY_ADDRESS,
             EVIDENCE_TRACKING_INFORMATION,
@@ -119,6 +123,7 @@ CHECKS = [
         "input_path": "items[].name / items[].description",
         "clause": "US Seller Protection terms \u00a72 — Excluded item categories",
         "prescription": "Category excluded from Seller Protection",
+        "unfixable_for_order": True,
         "expected_evidence": [
             EVIDENCE_CATEGORY_DOCUMENTATION,
         ],
