@@ -189,3 +189,15 @@ Created: 2026-10-11 / モード: 早駆け(提出物型 — PayPal AI Hackathon�
 | F NO_SHIPPING・紛争中(`3J366679AY2283450`) | `errors: []` 受理 | 同上。**「発送しない宣言」の注文にも事後で追跡登録可能** |
 
 HATEOASにPUT(replace)/PATCH(edit)リンク=更新系も開放。**診断→処置(追跡登録)→再検証(GET)の閉ループが全て実APIで構成可能**=審査員条件4(書き込みアクション)の技術的成立を確認。
+
+## 最終判定(仮想審査員・2026-10-11): **Go — 36/50**
+
+条件つきGoから**Go**へ昇格。NoGo連動条件だった2つ(Disputes lifecycle実測・tracking書き込み実測)が共に実測通過したため「存在証明の段階は終了」。残条件(3幕構成・無争議症例・US規約ピン)は建造要件へ降格。帯の下位(36)理由: adjudicate未達・payment_source未検証・紛争n=1・**製品本体がまだ0行**(sandbox/は検証プローブのみ)。
+
+**act-3オラクル成立の論理**: オラクルに必要なのは「PayPal機械が後でXを要求する」であって裁定結果ではない。`PROOF_OF_FULFILLMENT`要求=警告証拠種別と1対1一致、`HOLD_PLACED`=「警告を無視した代償」の視覚的実演(裁定文より強い幕の閉じ方)。adjudicate不在は欠陥でなく構造(裁定はPayPalレビューチームの人的工程=Guzco公式playbookと一致)。
+
+**文言規律(義務)**: 「あなたは負けます」は禁止。言えるのは「PayPalが要求した証拠=我々が警告した証拠」「資金が凍結された」まで。パンチライン候補: **「The flag evaluates what you declared. The dispute evaluates what you did.」**(US規約「may be eligible」「sole discretion」の文言に依拠=sandbox依存を脱した主張)。規約上「旗」は常時「declared-data snapshot」ラベル併記・「スタブ」の語は提出物に使わない。
+
+**提出までのクリティカルパス**: P0-1 診断エンジン実装(ルール層+意味層+固定処方表) / P0-2 US規約ピン(Intangible Goods Additional Requirementsの存在=「デジタル一律対象外」は誤ルール) / P0-3 3幕デモ台本+録画 / P1 紛争n=2再現・payment_source変動・AI審査フィルター対策7項目・README=デモ台本化・Guzco差分1文。
+
+**製品化の率直評価**: Guzco差別化は座標として立つが堀は未証明。弱さ4点: ①Sherlockリスク(PayPal本体が機能内蔵したら消える) ②distributionが本質的コスト(配送/OMS組込みが要) ③意味層のground truth依存 ④紛争率<1%で単体課金は薄い。現実的な行き先: 配送/リスティングツール組込みor証拠衛生〜係争証拠パッケージへ拡張。「旗は宣言値しか見ない(sandbox観測)」は問題の存在証明として使えるが文言は「sandboxで観測」に留める。
