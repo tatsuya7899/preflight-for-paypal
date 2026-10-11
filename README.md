@@ -23,7 +23,7 @@ PayPal sandbox認証情報の取得が詰まっている:
 
 ## 関連資産(リポジトリ外)
 
-- `/Users/tatsuyasasaki/Developer/_incubator/agent-pay-guardian/sandbox/order.py` — PayPal sandbox対話スクリプト(改造して実測に使う)
+- `/Users/tatsuyasasaki/Developer/_archive/agent-pay-guardian/sandbox/order.py` — PayPal sandbox対話スクリプト(改造して実測に使う。畳んだPJだが資産は生きている・_archiveへ2026-10-11移動)
 - `~/Developer/_ops/docs/ref/REF-paypal-winners-analysis_20261010.md` — 勝者分析(審査5軸)
 - `~/Developer/_ops/docs/ref/REF-hackathon-ai-screening_20261010.md` — AI審査フィルター対策(**提出時に必読**)
 - `~/.agents/skills/business-design/` — 本PJの実走でv1.20〜v1.22まで改訂済み
