@@ -120,6 +120,31 @@ Created: 2026-10-11 / モード: 早駆け(提出物型 — PayPal AI Hackathon�
 ## 前提の最もリスクの高い仮定
 - **「PayPalが既に対象旗を出しているのに、なぜ別のツールが要るか」** — 差分は「理由+処方+詐欺パターン照合」の3層。この差分が審査員に「PayPalの機能で足りるのでは」と読まれるか(=仮想審査員が最も攻める点)。対抗=「旗はYes/Noだけで、なぜ・どう修正するかは出さない」はPayPal公式文書の記述から一次情報で立つ
 
+## Gate 0条件1の実測結果(2026-10-11・sandbox実測): **スタブ判明**
+
+`sandbox/verify_sp.py`+`verify_sp2.py`+`capture_check.py`で6注文を作成→sandbox個人アカウント(sb-k6b9g53303451@personal.example.com)で承認→capture。結果:
+
+| # | 条件 | captureのseller_protection |
+|---|---|---|
+| A | PHYSICAL_GOODS+住所あり($10・対照) | `ELIGIBLE` + [ITEM_NOT_RECEIVED, UNAUTHORIZED_TRANSACTION] |
+| B | DIGITAL_GOODS($10) | `ELIGIBLE` + 同一カテゴリ |
+| C | PHYSICAL_GOODS・shipping欠落 | `ELIGIBLE` + 同一カテゴリ |
+| D | PHYSICAL_GOODS $800+住所(署名閾値越え) | `ELIGIBLE` + 同一カテゴリ |
+| E | items無し・金額のみ | `ELIGIBLE` + 同一カテゴリ |
+| F | shipping_preference:NO_SHIPPING | `ELIGIBLE` + 同一カテゴリ |
+
+**判定**: 条件を最大限変えても常時`ELIGIBLE`+固定`dispute_categories`=**sandboxのseller_protectionは条件評価しないスタブ**。フィールド自体は実在(形式も本物)だが、デモで「PayPal自身の旗がNOT_ELIGIBLEを返す」は**sandboxでは作れない**。
+
+**ただし死ではない可能性の反論**: 「旗は申告データしか見ない」は本製品の核心を裏付ける——PayPalの旗がELIGIBLEと言う注文でも、申告が意味的に嘘(カテゴリ詐称)なら紛争時に負ける。旗のスタブ性は「旗の上に意味層が要る」という製品の存在意義そのものの実演材料になりうる。
+
+## 仮想審査員・条件1再判定(2026-10-11): **条件つきGo維持(29/50→条件充足で36〜38)**
+
+- **旗は唯一のオラクルではなかった**: PayPal規約自体「marked eligible=必要条件の一つ」と明記→「旗ELIGIBLE≠裁定保証」は契約文言そのもの。正解のオラクルは規約文書
+- **より強い代替オラクル発見**: sandbox Disputes API全工程(create-dispute→require-evidence→adjudicate→settle=限定メソッド実在・evidence_typeの実値が返る)=「出荷前に警告した証拠を紛争機械が後で要求する」まで実演可能=act-3オラクル
+- **禁止事項**: 「旗ELIGIBLE vs 我々の違反」の裸の対置(審査員に「スタブが言ってるだけ」と読まれる)。旗には常時「宣言値スナップショット(必要条件)」ラベル+我々の診断は旗の定義域外に配置
+- **dispute_categories=[INR,UNAUTHORIZED]は仕様正しい**(SNADはSeller Protection非対象)=「ELIGIBLEでもSNAD紛争は守らない」は追加の実演材料
+- **新必須条件**: ①Disputes lifecycle実測(失敗=NoGo) ②payment_source変動で旗が動くか ③3幕構成のデモ再設計 ④意味層は無争議症例のみ ⑤規約はUS版にピン(デジタル品は無形品要件で対象になる管轄あり) ⑥tracking登録の書き込みもsandbox実測要(書き込みスタブの可能性)
+
 ## Gate 0判定(仮想審査員・2026-10-11): **条件つきGo(現形30/50・条件充足で35〜38見込み)**
 
 **審査員の事前検証で出た新事実**: `seller_protection.status`はOrders v2のcaptureリソースに実在(ELIGIBLE/PARTIALLY_ELIGIBLE/NOT_ELIGIBLE + dispute_categories)=**PayPal自身の旗をAPIで引ける=第三者発行オラクルが実在**。ただし旗は「資格の前提条件のスナップショット」で、請求時裁定に効く行為条件(指定住所発送・追跡・リダイレクト禁止・SNAD非対象・最終裁量)は旗の外に残る。
@@ -133,3 +158,23 @@ Created: 2026-10-11 / モード: 早駆け(提出物型 — PayPal AI Hackathon�
 6. 補助(任意): 「agent起点の注文こそ適合チェックが要る」の一線でagenticレーンの空気に乗る(偽装は見抜かれるので薄く)
 
 **審査員の指摘で崩れた本書の記述**: 「同一取引で対象外→修正→対象内」の実演設計は機構的に不可能と判明(条件2で再設計必須)。「頻繁=日次」の主張は実態より強い(紛争率<1%=深刻だが散発的→「毎注文にかかるpre-flightチェック」の言い換えで正当化する方針)。
+
+## Disputes APIライフサイクル実測(2026-10-11・ケースPP-R-XGB-10190971): **act-3オラクル実在確認**
+
+買い手がResolution Centerから手動でINR紛争を作成(対象=FのNO_SHIPPING注文・capture `3J366679AY2283450`)→エスカレート→証拠提出→追加情報、までAPIで実測した記録。
+
+**確認できた実機械(全て実API応答)**:
+
+| 観測 | 実値 |
+|---|---|
+| 紛争詳細GET(直接) | 200・全項目返却(一覧APIは空=伝播なし・直接IDのみ可視) |
+| ライフサイクル遷移 | `INQUIRY` →(買い手昇格)→ `CHARGEBACK` / status `UNDER_REVIEW`→`WAITING_FOR_SELLER_RESPONSE`→証拠提出で`UNDER_REVIEW`戻り |
+| **証拠要求(自動)** | 昇格と同時に `evidence_type=PROOF_OF_FULFILLMENT` `source=REQUESTED_FROM_SELLER` が追加=**PayPal機械が「履行証拠を出せ」を実値で要求** |
+| **資金保留** | `fund_movements`に `DEBIT $9.34` `reason=HOLD_PLACED` + `transaction_status=HELD` =紛争額が売り手残高から実際に保留 |
+| 売り手行動 | `provide_evidence`(200受理)・`accept_claim`・`provide_supporting_info`のリンクが状態に応じてHATEOASで出現/消滅 |
+| 状態機械の正当性 | 状態外の操作は `ACTION_NOT_ALLOWED_IN_CURRENT_DISPUTE_STATE` で確実に拒否 |
+| 紛争取引の保護判定 | `seller_protection_eligible=true` `seller_protection_type=EXPANDED_SELLER_PROTECTION` (NO_SHIPPING注文にもかかわらず=こちら側もスタブ挙動) |
+
+**未達**: `adjudicate`リンクは最後まで出現せず(UNDER_REVIEW/CHARGEBACKで`provide_supporting_info`のみ残る)。裁定=PayPal内部の時限処理の可能性。sandboxでBUYER_FAVOR/SELLER_FAVORの終着をAPI引きする経路は未発見(accept_claimで売り手負け返金に自力閉じる経路はWAITING_FOR_SELLER_RESPONSE時に存在した)。
+
+**デモへの含意**: 審査員のact-3条件の核心「出荷前に警告した証拠を紛争機械が後で要求する」は**PROOF_OF_FULFILLMENT要求+資金保留で実演可能=合格相当**。裁定結果の実演は欠けるが、因果連鎖(警告→紛争→証拠要求→資金凍結)は全部実API。デモ台本: 「我々の警告した証拠種別 = PayPalが実際に要求したevidence_type」を1対1で画面に並べる。
