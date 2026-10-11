@@ -56,7 +56,6 @@ function esc(s) {
 /* ---------- state ---------- */
 let currentVerdict = null;   // verdict being displayed
 let previousVerdict = null;  // verdict before the last successful track+re-check
-let currentId = null;        // capture_id or order_id used for the last /check
 
 /* ---------- boot ---------- */
 async function boot() {
@@ -129,7 +128,6 @@ async function runCheck(idValue) {
     note("Unexpected response shape from backend.", "var(--danger)");
     return false;
   }
-  currentId = verdict.capture_id || v;
   // keep the previous verdict for §06 only when re-checking the SAME order
   previousVerdict = (currentVerdict && currentVerdict.order_id === verdict.order_id) ? currentVerdict : null;
   currentVerdict = verdict;
@@ -152,9 +150,9 @@ function render(v, prev) {
 
 function renderSummary(s) {
   $("summary").innerHTML =
-    `<div class="chip p"><div class="n">${s.n_pass}</div><div class="l">PASS</div></div>
-     <div class="chip f"><div class="n">${s.n_fail}</div><div class="l">FAIL</div></div>
-     <div class="chip n"><div class="n">${s.n_not_assessable}</div><div class="l">N/A</div></div>`;
+    `<div class="chip p"><div class="n">${Number(s.n_pass) | 0}</div><div class="l">PASS</div></div>
+     <div class="chip f"><div class="n">${Number(s.n_fail) | 0}</div><div class="l">FAIL</div></div>
+     <div class="chip n"><div class="n">${Number(s.n_not_assessable) | 0}</div><div class="l">N/A</div></div>`;
 }
 
 const pill = (st) =>
@@ -186,6 +184,7 @@ function renderCards(checks) {
       <div class="c-evid">${(c.expected_evidence || []).map((t) => `<a class="evid-mini" href="#slot-${esc(t)}">${icon(t)}<span>${brk(esc(t))}</span></a>`).join("")}</div>`;
     strip.appendChild(el);
   }
+  strip.scrollLeft = 0;
   buildStripUi(strip, checks.length);
 }
 
@@ -289,7 +288,7 @@ function deriveSlotState(refsForType) {
   const fails = refsForType.filter((r) => r.status === "fail");
   if (!fails.length) return "fillable";
   const allUnfixable = fails.every((r) =>
-    r.unfixable_for_order === true || /do not ship|excluded/i.test(r.prescription || ""));
+    r.unfixable_for_order === true || /do not ship|excluded from seller protection/i.test(r.prescription || ""));
   return allUnfixable ? "unfillable" : "fillable";
 }
 const SLOT_DESC = {
@@ -333,7 +332,10 @@ function renderSlots(checks) {
     for (const t of smallTypes) {
       const chip = document.createElement("span");
       chip.className = "ref-chip";
-      const st = refs[t].map((r) => r.status)[0];
+      chip.id = "slot-" + t;   // anchor target for card evid-mini links
+      // smallTypes have no fail refs by definition; show "n/a" only when
+      // every referencing check is not_assessable, otherwise "pass"
+      const st = refs[t].every((r) => r.status === "not_assessable") ? "not_assessable" : "pass";
       chip.title = refs[t].map((r) => `${r.condition} (${r.status})`).join(" · ");
       chip.innerHTML = `${icon(t)}<span>${brk(esc(t))}</span><span class="rc-st">${st === "not_assessable" ? "n/a" : esc(st)}</span>`;
       list.appendChild(chip);
@@ -361,7 +363,6 @@ function renderFix(v) {
 }
 
 function renderBeforeAfter(v, prev) {
-  const afterRows = v.checks.filter((c) => c.status === "fail");
   if (!prev) {
     $("baBefore").innerHTML = '<div class="ba-note" style="margin:0">re-check after a fix to compare</div>';
     $("baAfter").innerHTML = '<div class="ba-note" style="margin:0">—</div>';
