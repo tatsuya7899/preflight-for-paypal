@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "PayPal Seller Protection Preflight",
+  "version": "0.1.0",
+  "description": "Checks a PayPal order against Seller Protection conditions before it becomes a dispute.",
+  "permissions": ["sidePanel", "storage"],
+  "host_permissions": [
+    "http://127.0.0.1:8000/*",
+    "*://*.sandbox.paypal.com/*",
+    "*://*.paypal.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.sandbox.paypal.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_title": "Open Preflight Checker"
+  }
+}

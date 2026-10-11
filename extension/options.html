@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Preflight Checker Options</title>
+</head>
+<body>
+  <h1>Preflight Checker — Settings</h1>
+
+  <section>
+    <label for="token">Backend API token (X-Preflight-Token)</label><br />
+    <input type="text" id="token" size="70" />
+    <button id="save">Save</button>
+    <span id="saveStatus"></span>
+  </section>
+
+  <section>
+    <p>Backend base URL: <code>http://127.0.0.1:8000</code></p>
+    <button id="testConnection">Test connection</button>
+    <span id="healthStatus"></span>
+  </section>
+
+  <script src="options.js"></script>
+</body>
+</html>
