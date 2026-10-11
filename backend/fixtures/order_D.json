@@ -1,0 +1,135 @@
+{
+ "id": "56C46835SC281864L",
+ "intent": "CAPTURE",
+ "status": "COMPLETED",
+ "payment_source": {
+  "paypal": {
+   "email_address": "sb-k6b9g53303451@personal.example.com",
+   "account_id": "WPW3YRZKPFUHQ",
+   "account_status": "VERIFIED",
+   "name": {
+    "given_name": "John",
+    "surname": "Doe"
+   },
+   "address": {
+    "country_code": "JP"
+   }
+  }
+ },
+ "purchase_units": [
+  {
+   "reference_id": "default",
+   "amount": {
+    "currency_code": "USD",
+    "value": "800.00",
+    "breakdown": {
+     "item_total": {
+      "currency_code": "USD",
+      "value": "800.00"
+     }
+    }
+   },
+   "payee": {
+    "email_address": "sb-watcy53292435@business.example.com",
+    "merchant_id": "4D4RCZX94MX7L"
+   },
+   "soft_descriptor": "PAYPAL *TEST STORE",
+   "items": [
+    {
+     "name": "Expensive Widget",
+     "unit_amount": {
+      "currency_code": "USD",
+      "value": "800.00"
+     },
+     "quantity": "1",
+     "category": "PHYSICAL_GOODS"
+    }
+   ],
+   "shipping": {
+    "name": {
+     "full_name": "Sandbox Buyer"
+    },
+    "address": {
+     "address_line_1": "1 Main St",
+     "admin_area_2": "San Jose",
+     "admin_area_1": "CA",
+     "postal_code": "95131",
+     "country_code": "US"
+    }
+   },
+   "payments": {
+    "captures": [
+     {
+      "id": "76X32521BG861322V",
+      "status": "COMPLETED",
+      "amount": {
+       "currency_code": "USD",
+       "value": "800.00"
+      },
+      "final_capture": true,
+      "seller_protection": {
+       "status": "ELIGIBLE",
+       "dispute_categories": [
+        "ITEM_NOT_RECEIVED",
+        "UNAUTHORIZED_TRANSACTION"
+       ]
+      },
+      "seller_receivable_breakdown": {
+       "gross_amount": {
+        "currency_code": "USD",
+        "value": "800.00"
+       },
+       "paypal_fee": {
+        "currency_code": "USD",
+        "value": "29.10"
+       },
+       "net_amount": {
+        "currency_code": "USD",
+        "value": "770.90"
+       }
+      },
+      "links": [
+       {
+        "href": "https://api.sandbox.paypal.com/v2/payments/captures/76X32521BG861322V",
+        "rel": "self",
+        "method": "GET"
+       },
+       {
+        "href": "https://api.sandbox.paypal.com/v2/payments/captures/76X32521BG861322V/refund",
+        "rel": "refund",
+        "method": "POST"
+       },
+       {
+        "href": "https://api.sandbox.paypal.com/v2/checkout/orders/56C46835SC281864L",
+        "rel": "up",
+        "method": "GET"
+       }
+      ],
+      "create_time": "2026-10-11T05:45:16Z",
+      "update_time": "2026-10-11T05:45:16Z"
+     }
+    ]
+   }
+  }
+ ],
+ "payer": {
+  "name": {
+   "given_name": "John",
+   "surname": "Doe"
+  },
+  "email_address": "sb-k6b9g53303451@personal.example.com",
+  "payer_id": "WPW3YRZKPFUHQ",
+  "address": {
+   "country_code": "JP"
+  }
+ },
+ "create_time": "2026-10-11T05:45:16Z",
+ "update_time": "2026-10-11T05:45:16Z",
+ "links": [
+  {
+   "href": "https://api.sandbox.paypal.com/v2/checkout/orders/56C46835SC281864L",
+   "rel": "self",
+   "method": "GET"
+  }
+ ]
+}

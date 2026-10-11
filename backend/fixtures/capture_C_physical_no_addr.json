@@ -1,0 +1,58 @@
+{
+ "id": "2B190886TP583404W",
+ "amount": {
+  "currency_code": "USD",
+  "value": "10.00"
+ },
+ "final_capture": true,
+ "seller_protection": {
+  "status": "ELIGIBLE",
+  "dispute_categories": [
+   "ITEM_NOT_RECEIVED",
+   "UNAUTHORIZED_TRANSACTION"
+  ]
+ },
+ "seller_receivable_breakdown": {
+  "gross_amount": {
+   "currency_code": "USD",
+   "value": "10.00"
+  },
+  "paypal_fee": {
+   "currency_code": "USD",
+   "value": "0.66"
+  },
+  "net_amount": {
+   "currency_code": "USD",
+   "value": "9.34"
+  }
+ },
+ "status": "COMPLETED",
+ "supplementary_data": {
+  "related_ids": {
+   "order_id": "1E363983N42578105"
+  }
+ },
+ "payee": {
+  "email_address": "sb-watcy53292435@business.example.com",
+  "merchant_id": "4D4RCZX94MX7L"
+ },
+ "create_time": "2026-10-11T05:21:27Z",
+ "update_time": "2026-10-11T05:21:27Z",
+ "links": [
+  {
+   "href": "https://api.sandbox.paypal.com/v2/payments/captures/2B190886TP583404W",
+   "rel": "self",
+   "method": "GET"
+  },
+  {
+   "href": "https://api.sandbox.paypal.com/v2/payments/captures/2B190886TP583404W/refund",
+   "rel": "refund",
+   "method": "POST"
+  },
+  {
+   "href": "https://api.sandbox.paypal.com/v2/checkout/orders/1E363983N42578105",
+   "rel": "up",
+   "method": "GET"
+  }
+ ]
+}

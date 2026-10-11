@@ -1,0 +1,150 @@
+{
+ "dispute_id": "PP-R-XGB-10190971",
+ "create_time": "2026-10-11T06:17:56.348Z",
+ "update_time": "2026-10-11T07:05:13.533Z",
+ "disputed_transactions": [
+  {
+   "buyer_transaction_id": "90478706TM2304732",
+   "seller_transaction_id": "3J366679AY2283450",
+   "create_time": "2026-10-11T05:45:19.000Z",
+   "transaction_status": "HELD",
+   "gross_amount": {
+    "currency_code": "USD",
+    "value": "10.00"
+   },
+   "buyer": {
+    "email": "sb-k6b9g53303451@personal.example.com",
+    "payer_id": "WPW3YRZKPFUHQ",
+    "name": "Doe John"
+   },
+   "seller": {
+    "email": "sb-watcy53292435@business.example.com",
+    "merchant_id": "4D4RCZX94MX7L",
+    "name": "Test Store"
+   },
+   "items": [
+    {
+     "item_name": "Widget",
+     "item_description": "Widget",
+     "item_quantity": "1",
+     "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+     "item_type": "PRODUCT"
+    }
+   ],
+   "seller_protection_eligible": true,
+   "seller_protection_type": "EXPANDED_SELLER_PROTECTION"
+  }
+ ],
+ "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+ "status": "UNDER_REVIEW",
+ "dispute_amount": {
+  "currency_code": "USD",
+  "value": "10.00"
+ },
+ "dispute_state": "UNDER_PAYPAL_REVIEW",
+ "fund_movements": [
+  {
+   "party": "RECEIVER",
+   "amount": {
+    "currency_code": "USD",
+    "value": "9.34"
+   },
+   "initiated_time": "2026-10-11T06:21:34.000Z",
+   "type": "DEBIT",
+   "reason": "HOLD_PLACED"
+  }
+ ],
+ "dispute_life_cycle_stage": "CHARGEBACK",
+ "dispute_channel": "INTERNAL",
+ "messages": [
+  {
+   "posted_by": "BUYER",
+   "time_posted": "2026-10-11T06:17:56.348Z",
+   "content": "test dispute"
+  }
+ ],
+ "extensions": {
+  "merchant_contacted": false,
+  "buyer_contacted_time": "2026-10-11T06:17:55.681Z"
+ },
+ "evidences": [
+  {
+   "evidence_type": "CREATE",
+   "notes": "test dispute",
+   "source": "SUBMITTED_BY_BUYER",
+   "date": "2026-10-11T06:17:56.348Z",
+   "dispute_life_cycle_stage": "INQUIRY"
+  },
+  {
+   "evidence_type": "PROOF_OF_FULFILLMENT",
+   "notes": "sandbox test evidence",
+   "source": "SUBMITTED_BY_SELLER",
+   "date": "2026-10-11T06:33:47.205Z",
+   "action_info": {
+    "action": "PROVIDE_EVIDENCE"
+   },
+   "dispute_life_cycle_stage": "INQUIRY"
+  },
+  {
+   "evidence_type": "PROOF_OF_FULFILLMENT",
+   "evidence_info": {
+    "tracking_info": [
+     {
+      "carrier_name": "UPS",
+      "tracking_number": "1Z999AA10123456784"
+     }
+    ]
+   },
+   "notes": "sandbox test: tracking not available (NO_SHIPPING order)",
+   "source": "SUBMITTED_BY_SELLER",
+   "date": "2026-10-11T06:37:13.259Z",
+   "action_info": {
+    "action": "PROVIDE_EVIDENCE"
+   },
+   "dispute_life_cycle_stage": "CHARGEBACK"
+  }
+ ],
+ "offer": {
+  "buyer_requested_amount": {
+   "currency_code": "USD",
+   "value": "10.00"
+  }
+ },
+ "refund_details": {
+  "allowed_refund_amount": {
+   "currency_code": "USD",
+   "value": "10.00"
+  }
+ },
+ "supporting_info": [
+  {
+   "notes": "additional info: no shipment was made",
+   "source": "SUBMITTED_BY_SELLER",
+   "provided_time": "2026-10-11T06:40:50.005Z"
+  }
+ ],
+ "allowed_response_options": {
+  "accept_claim": {
+   "accept_claim_types": [
+    "REFUND"
+   ]
+  }
+ },
+ "links": [
+  {
+   "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-XGB-10190971",
+   "rel": "self",
+   "method": "GET"
+  },
+  {
+   "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-XGB-10190971/accept-claim",
+   "rel": "accept_claim",
+   "method": "POST"
+  },
+  {
+   "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-XGB-10190971/provide-supporting-info",
+   "rel": "provide_supporting_info",
+   "method": "POST"
+  }
+ ]
+}

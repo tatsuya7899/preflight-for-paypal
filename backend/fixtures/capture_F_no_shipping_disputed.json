@@ -1,0 +1,47 @@
+{
+ "id": "3J366679AY2283450",
+ "amount": {
+  "currency_code": "USD",
+  "value": "10.00"
+ },
+ "final_capture": true,
+ "seller_protection": {
+  "status": "ELIGIBLE",
+  "dispute_categories": [
+   "ITEM_NOT_RECEIVED",
+   "UNAUTHORIZED_TRANSACTION"
+  ]
+ },
+ "status": "PENDING",
+ "status_details": {
+  "reason": "BUYER_COMPLAINT"
+ },
+ "supplementary_data": {
+  "related_ids": {
+   "order_id": "3UJ2460633408874H"
+  }
+ },
+ "payee": {
+  "email_address": "sb-watcy53292435@business.example.com",
+  "merchant_id": "4D4RCZX94MX7L"
+ },
+ "create_time": "2026-10-11T05:45:19Z",
+ "update_time": "2026-10-11T06:37:35Z",
+ "links": [
+  {
+   "href": "https://api.sandbox.paypal.com/v2/payments/captures/3J366679AY2283450",
+   "rel": "self",
+   "method": "GET"
+  },
+  {
+   "href": "https://api.sandbox.paypal.com/v2/payments/captures/3J366679AY2283450/refund",
+   "rel": "refund",
+   "method": "POST"
+  },
+  {
+   "href": "https://api.sandbox.paypal.com/v2/checkout/orders/3UJ2460633408874H",
+   "rel": "up",
+   "method": "GET"
+  }
+ ]
+}

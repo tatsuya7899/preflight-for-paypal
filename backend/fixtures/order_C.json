@@ -1,0 +1,134 @@
+{
+ "id": "1E363983N42578105",
+ "intent": "CAPTURE",
+ "status": "COMPLETED",
+ "payment_source": {
+  "paypal": {
+   "email_address": "sb-k6b9g53303451@personal.example.com",
+   "account_id": "WPW3YRZKPFUHQ",
+   "account_status": "VERIFIED",
+   "name": {
+    "given_name": "John",
+    "surname": "Doe"
+   },
+   "address": {
+    "country_code": "JP"
+   }
+  }
+ },
+ "purchase_units": [
+  {
+   "reference_id": "default",
+   "amount": {
+    "currency_code": "USD",
+    "value": "10.00",
+    "breakdown": {
+     "item_total": {
+      "currency_code": "USD",
+      "value": "10.00"
+     }
+    }
+   },
+   "payee": {
+    "email_address": "sb-watcy53292435@business.example.com",
+    "merchant_id": "4D4RCZX94MX7L"
+   },
+   "items": [
+    {
+     "name": "Physical No Addr",
+     "unit_amount": {
+      "currency_code": "USD",
+      "value": "10.00"
+     },
+     "quantity": "1",
+     "category": "PHYSICAL_GOODS"
+    }
+   ],
+   "shipping": {
+    "name": {
+     "full_name": "Doe John"
+    },
+    "address": {
+     "address_line_1": "Nishi 4-chome, Kita 55-jo, Kita-ku",
+     "admin_area_2": "Shibuya-ku",
+     "admin_area_1": "Tokyo",
+     "postal_code": "150-0002",
+     "country_code": "JP"
+    }
+   },
+   "payments": {
+    "captures": [
+     {
+      "id": "2B190886TP583404W",
+      "status": "COMPLETED",
+      "amount": {
+       "currency_code": "USD",
+       "value": "10.00"
+      },
+      "final_capture": true,
+      "seller_protection": {
+       "status": "ELIGIBLE",
+       "dispute_categories": [
+        "ITEM_NOT_RECEIVED",
+        "UNAUTHORIZED_TRANSACTION"
+       ]
+      },
+      "seller_receivable_breakdown": {
+       "gross_amount": {
+        "currency_code": "USD",
+        "value": "10.00"
+       },
+       "paypal_fee": {
+        "currency_code": "USD",
+        "value": "0.66"
+       },
+       "net_amount": {
+        "currency_code": "USD",
+        "value": "9.34"
+       }
+      },
+      "links": [
+       {
+        "href": "https://api.sandbox.paypal.com/v2/payments/captures/2B190886TP583404W",
+        "rel": "self",
+        "method": "GET"
+       },
+       {
+        "href": "https://api.sandbox.paypal.com/v2/payments/captures/2B190886TP583404W/refund",
+        "rel": "refund",
+        "method": "POST"
+       },
+       {
+        "href": "https://api.sandbox.paypal.com/v2/checkout/orders/1E363983N42578105",
+        "rel": "up",
+        "method": "GET"
+       }
+      ],
+      "create_time": "2026-10-11T05:21:27Z",
+      "update_time": "2026-10-11T05:21:27Z"
+     }
+    ]
+   }
+  }
+ ],
+ "payer": {
+  "name": {
+   "given_name": "John",
+   "surname": "Doe"
+  },
+  "email_address": "sb-k6b9g53303451@personal.example.com",
+  "payer_id": "WPW3YRZKPFUHQ",
+  "address": {
+   "country_code": "JP"
+  }
+ },
+ "create_time": "2026-10-11T05:21:27Z",
+ "update_time": "2026-10-11T05:21:27Z",
+ "links": [
+  {
+   "href": "https://api.sandbox.paypal.com/v2/checkout/orders/1E363983N42578105",
+   "rel": "self",
+   "method": "GET"
+  }
+ ]
+}

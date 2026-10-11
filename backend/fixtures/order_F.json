@@ -1,0 +1,162 @@
+{
+ "id": "3UJ2460633408874H",
+ "intent": "CAPTURE",
+ "status": "COMPLETED",
+ "payment_source": {
+  "paypal": {
+   "email_address": "sb-k6b9g53303451@personal.example.com",
+   "account_id": "WPW3YRZKPFUHQ",
+   "account_status": "VERIFIED",
+   "name": {
+    "given_name": "John",
+    "surname": "Doe"
+   },
+   "address": {
+    "country_code": "JP"
+   }
+  }
+ },
+ "purchase_units": [
+  {
+   "reference_id": "default",
+   "amount": {
+    "currency_code": "USD",
+    "value": "10.00",
+    "breakdown": {
+     "item_total": {
+      "currency_code": "USD",
+      "value": "10.00"
+     }
+    }
+   },
+   "payee": {
+    "email_address": "sb-watcy53292435@business.example.com",
+    "merchant_id": "4D4RCZX94MX7L"
+   },
+   "soft_descriptor": "PAYPAL *TEST STORE",
+   "items": [
+    {
+     "name": "Widget",
+     "unit_amount": {
+      "currency_code": "USD",
+      "value": "10.00"
+     },
+     "quantity": "1",
+     "category": "PHYSICAL_GOODS"
+    }
+   ],
+   "payments": {
+    "captures": [
+     {
+      "id": "3J366679AY2283450",
+      "status": "PENDING",
+      "status_details": {
+       "reason": "BUYER_COMPLAINT"
+      },
+      "amount": {
+       "currency_code": "USD",
+       "value": "10.00"
+      },
+      "final_capture": true,
+      "seller_protection": {
+       "status": "ELIGIBLE",
+       "dispute_categories": [
+        "ITEM_NOT_RECEIVED",
+        "UNAUTHORIZED_TRANSACTION"
+       ]
+      },
+      "links": [
+       {
+        "href": "https://api.sandbox.paypal.com/v2/payments/captures/3J366679AY2283450",
+        "rel": "self",
+        "method": "GET"
+       },
+       {
+        "href": "https://api.sandbox.paypal.com/v2/payments/captures/3J366679AY2283450/refund",
+        "rel": "refund",
+        "method": "POST"
+       },
+       {
+        "href": "https://api.sandbox.paypal.com/v2/checkout/orders/3UJ2460633408874H",
+        "rel": "up",
+        "method": "GET"
+       }
+      ],
+      "create_time": "2026-10-11T05:45:19Z",
+      "update_time": "2026-10-11T06:37:35Z"
+     }
+    ],
+    "refunds": [
+     {
+      "id": "3FH11939RT399901K",
+      "amount": {
+       "currency_code": "USD",
+       "value": "9.34"
+      },
+      "seller_payable_breakdown": {
+       "gross_amount": {
+        "currency_code": "USD",
+        "value": "9.34"
+       },
+       "paypal_fee": {
+        "currency_code": "USD",
+        "value": "0.00"
+       },
+       "platform_fees": [
+        {
+         "amount": {
+          "currency_code": "USD",
+          "value": "0.00"
+         }
+        }
+       ],
+       "net_amount": {
+        "currency_code": "USD",
+        "value": "9.34"
+       },
+       "total_refunded_amount": {
+        "currency_code": "USD",
+        "value": "0.00"
+       }
+      },
+      "status": "PENDING",
+      "links": [
+       {
+        "href": "https://api.sandbox.paypal.com/v2/payments/refunds/3FH11939RT399901K",
+        "rel": "self",
+        "method": "GET"
+       },
+       {
+        "href": "https://api.sandbox.paypal.com/v2/payments/captures/3J366679AY2283450",
+        "rel": "up",
+        "method": "GET"
+       }
+      ],
+      "create_time": "2026-10-10T23:21:33-07:00",
+      "update_time": "2026-10-10T23:21:33-07:00"
+     }
+    ]
+   }
+  }
+ ],
+ "payer": {
+  "name": {
+   "given_name": "John",
+   "surname": "Doe"
+  },
+  "email_address": "sb-k6b9g53303451@personal.example.com",
+  "payer_id": "WPW3YRZKPFUHQ",
+  "address": {
+   "country_code": "JP"
+  }
+ },
+ "create_time": "2026-10-11T05:45:19Z",
+ "update_time": "2026-10-11T06:37:35Z",
+ "links": [
+  {
+   "href": "https://api.sandbox.paypal.com/v2/checkout/orders/3UJ2460633408874H",
+   "rel": "self",
+   "method": "GET"
+  }
+ ]
+}
