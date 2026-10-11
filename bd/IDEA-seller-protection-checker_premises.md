@@ -190,6 +190,10 @@ Created: 2026-10-11 / モード: 早駆け(提出物型 — PayPal AI Hackathon�
 
 HATEOASにPUT(replace)/PATCH(edit)リンク=更新系も開放。**診断→処置(追跡登録)→再検証(GET)の閉ループが全て実APIで構成可能**=審査員条件4(書き込みアクション)の技術的成立を確認。
 
+## 実測の追加発見(2026-10-11・rules実装中): **PayPalはshipping省略時に買い手既定住所を自動注入する**
+
+注文作成時にshippingを省略した注文Cで、`purchase_units[].shipping.address`には買い手の既定住所(JP)が入っていた。つまり**APIデータ上「住所が無い」は作りにくい**——住所の有無チェックは「merchantが配送先を確定したか」ではなく「API上に住所が見えるか」しか分からない。真の住所なし症例はshipping_preference=NO_SHIPPINGの注文F(`shipping=null`)。製品への含意: 「住所あり=pass」は形式的適合のみを意味し、merchantがその住所に送る意図があったかは判別不能=正直な限界としてUI文言に反映する価値あり。
+
 ## 最終判定(仮想審査員・2026-10-11): **Go — 36/50**
 
 条件つきGoから**Go**へ昇格。NoGo連動条件だった2つ(Disputes lifecycle実測・tracking書き込み実測)が共に実測通過したため「存在証明の段階は終了」。残条件(3幕構成・無争議症例・US規約ピン)は建造要件へ降格。帯の下位(36)理由: adjudicate未達・payment_source未検証・紛争n=1・**製品本体がまだ0行**(sandbox/は検証プローブのみ)。
