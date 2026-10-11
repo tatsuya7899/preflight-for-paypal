@@ -1,7 +1,7 @@
 # DEC: Preflight for PayPal — Gate 4 Go/NoGo 判断記録
 Created: 2026-10-11
 決定者: 利用者(CEO) — 「それでいきましょう」(2026-10-11 セッション内の明示承認)
-Input: `IDEA-seller-protection-checker_{premises,dtf,forces,canvas,fermi,onepager}.md`・M2/M7独立レビュー所見
+Input: `IDEA-seller-protection-checker_premises.md` / `_dtf.md` / `_forces.md` / `_canvas.md` / `_fermi.md` / `_onepager.md`・M2/M7独立レビュー所見
 
 ## 判定: Go(条件付き)
 
