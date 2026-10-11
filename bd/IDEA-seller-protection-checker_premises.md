@@ -178,3 +178,14 @@ Created: 2026-10-11 / モード: 早駆け(提出物型 — PayPal AI Hackathon�
 **未達**: `adjudicate`リンクは最後まで出現せず(UNDER_REVIEW/CHARGEBACKで`provide_supporting_info`のみ残る)。裁定=PayPal内部の時限処理の可能性。sandboxでBUYER_FAVOR/SELLER_FAVORの終着をAPI引きする経路は未発見(accept_claimで売り手負け返金に自力閉じる経路はWAITING_FOR_SELLER_RESPONSE時に存在した)。
 
 **デモへの含意**: 審査員のact-3条件の核心「出荷前に警告した証拠を紛争機械が後で要求する」は**PROOF_OF_FULFILLMENT要求+資金保留で実演可能=合格相当**。裁定結果の実演は欠けるが、因果連鎖(警告→紛争→証拠要求→資金凍結)は全部実API。デモ台本: 「我々の警告した証拠種別 = PayPalが実際に要求したevidence_type」を1対1で画面に並べる。
+
+## Shipment tracking登録実測(2026-10-11): **書き込みは実物=スタブでない**
+
+`POST /v1/shipping/trackers-batch` + `GET /v1/shipping/trackers?transaction_id=` を実測(`sandbox/tracking_test.py`):
+
+| 対象取引 | POST結果 | GET読戻し |
+|---|---|---|
+| A物理品(`4EC24563F7235632E`) | `errors: []` 受理 | `status=SHIPPED` `carrier=UPS` `tracking_number` `shipment_uploader=MERCHANT` 全実値 |
+| F NO_SHIPPING・紛争中(`3J366679AY2283450`) | `errors: []` 受理 | 同上。**「発送しない宣言」の注文にも事後で追跡登録可能** |
+
+HATEOASにPUT(replace)/PATCH(edit)リンク=更新系も開放。**診断→処置(追跡登録)→再検証(GET)の閉ループが全て実APIで構成可能**=審査員条件4(書き込みアクション)の技術的成立を確認。
