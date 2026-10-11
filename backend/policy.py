@@ -88,9 +88,14 @@ CHECKS = [
         "fixed_status": "not_assessable",
     },
     {
+        # Clause basis pinned to the legalhub threshold table (750 USD).
+        # NOTE: PayPal PM help text states signature confirmation became
+        # "recommended, not mandatory" for transactions on/after 2026-01-26
+        # while the legalhub table still lists the threshold — version drift.
+        # Re-verify the current US version before submission (M2/M7 finding).
         "condition": "HIGH_VALUE_SIGNATURE",
         "input_path": "purchase_units[].amount.value (>= $750 USD)",
-        "clause": "US Seller Protection terms \u00a71(c) — Signature Confirmation for high-value items",
+        "clause": "US Seller Protection terms \u00a71(c) — Signature Confirmation for high-value items (legalhub threshold table, 750 USD)",
         "prescription": "Use signature confirmation",
         "expected_evidence": [
             EVIDENCE_SIGNATURE_CONFIRMATION,
@@ -100,7 +105,10 @@ CHECKS = [
         "condition": "SHIP_WITHIN_DAYS",
         "input_path": "order.create_time",
         "clause": "US Seller Protection terms \u00a71(d) — Timely shipment window",
-        "prescription": "Ship within the required window",
+        # US terms: required only for pre-ordered / made-to-order goods (ship
+        # within the timeframe specified in the listing); otherwise "it is
+        # recommended" to ship within 7 days — not a hard requirement.
+        "prescription": "Ship within your stated timeframe (required for pre-order/made-to-order); otherwise recommended within 7 days",
         "expected_evidence": [
             EVIDENCE_SHIPMENT_DATE_RECORD,
             EVIDENCE_PROOF_OF_FULFILLMENT,
@@ -188,7 +196,7 @@ FRAUD_PATTERNS = [
             "prove any delivery address was ever confirmed."
         ),
         "api_assessable": True,
-        "signal_basis": "purchase_units[].shipping absent on a capture-complete order",
+        "signal_basis": "purchase_units[].shipping absent on this order",
     },
     {
         "name": "HIGH_VALUE_NO_SIGNATURE",

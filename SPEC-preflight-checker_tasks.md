@@ -30,6 +30,17 @@
 
 - 3幕デモ台本+録画・README=デモ台本化・AI審査フィルター対策・紛争n=2再現・payment_source変動テスト → 提出パス側TODO(premises最終判定のP0-3/P1群)。本SPEC完了後に別工程で管理
 
+### 提出パス側タスク(M2/M7独立レビュー2026-10-11由来・登録済み)
+
+| # | タスク | 種別 | 委任先 | 依存 | 完了判定 |
+|---|---|---|---|---|---|
+| S1 | 審査員実行経路の整備: backendにfixtureモード起動手順をREADMEに明記(PayPal資格情報なしで動く検証経路)+セットアップ手順書(sandbox資格情報取得〜拡張sideload〜トークン貼付) | 安定型 | builder | #8 | Devpost要件「judges must be able to actually run a working build」を満たす手順がREADMEに存在 |
+| S2 | 規約条項照合監査: policy.pyの条項根拠を現行US版(文書日付ピン)で再確認・SHIP_WITHIN_DAYSのrequired/recommended文言・HIGH_VALUE_SIGNATUREのfail→warning判定を含む | 探索型 | builder+web確認 | #3 | 全条項に「根拠文書の版(日付)」が明記され文言が現行版と一致 |
+| S3 | payment_source変動で旗が動くかのテスト(Gate 0残条件②・sandboxスクリプト) | 探索型 | builder | #4 | 変動有無が1行で記録される |
+| S4 | 紛争n=2再現(UNAUTHORIZED系・デモ録画前・実API) | 安定型 | builder | #4,#8 | UNAUTHORIZED案件でevidence要求まで再現 |
+| S5 | 3幕デモ台本+録画+README台本化+AI審査フィルター対策(REF-hackathon-ai-screening) | 安定型 | builder+監督 | #11,S1 | 提出物一式がDevpost要件・文言規律(裸対置禁止)を満たす |
+| S6 | 実セラー実演(MSC(b)検収・相手の直近実注文のsandbox再現注文で実施) | — | **利用者(人間調達)** | #13 | 相手の「使い続けていい?」自発質問の有無が記録される(11/09逆算期限) |
+
 ## 差し戻し
 
 - 同一指摘の往復は2回まで。3ラウンドを超えたら振動とみなし人間裁定

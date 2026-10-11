@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Preflight for PayPal — panel v5</title>
+<style>
+:root{
+  --bg:#0a0a0f; --panel:#12121a; --panel2:#171722; --line:#262633;
+  --text:#e8e8f0; --text-dim:#b5b5c6; --text-faint:#8a8a9e;
+  --amber:#f5a524; --green:#34d17b; --blue:#3b82f6; --purple:#a78bfa;
+  --danger:#f05555;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:13px/1.5 -apple-system,"SF Pro Text",Inter,sans-serif;width:360px;overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:var(--blue);text-decoration:none}
+.mono{font-family:"SF Mono",Menlo,monospace}
+
+/* ---------- header ---------- */
+header{padding:14px 14px 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.brand .dot{width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--blue))}
+.brand .ver{margin-left:auto;color:var(--text-faint);font-size:9.5px;letter-spacing:.08em}
+.idrow{display:flex;gap:6px;margin-top:10px}
+.idrow input{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--text);padding:8px 10px;font-family:"SF Mono",Menlo,monospace;font-size:11px;min-height:40px}
+.btn-load{background:var(--blue);color:#fff;border-radius:6px;padding:8px 14px;font-weight:600;font-size:12px;min-height:40px}
+.metarow{margin-top:8px;font-size:10px;color:var(--text-faint);display:flex;gap:10px;flex-wrap:wrap}
+.metarow .ok{color:var(--green)}
+.fallback{margin-top:8px}
+.fallback summary{color:var(--text-faint);font-size:10px;cursor:pointer;min-height:36px;display:flex;align-items:center}
+.fallback input{width:100%;background:var(--panel2);border:1px dashed var(--line);border-radius:6px;color:var(--text);padding:8px 10px;font-family:"SF Mono",Menlo,monospace;font-size:10.5px;margin-top:6px;min-height:40px}
+.simrow{display:flex;gap:6px;margin-top:8px}
+.sim-btn{border:1px solid var(--line);border-radius:5px;padding:6px 10px;font-size:10px;color:var(--text-faint);min-height:40px}
+
+/* ---------- dispute banner ---------- */
+.dispute-banner{margin:10px 14px 0;padding:10px 12px;border:1px solid var(--amber);border-left-width:3px;border-radius:8px;background:rgba(245,165,36,.07);font-size:11px}
+.dispute-banner b{color:var(--amber)}
+.dispute-banner .src{display:block;margin-top:3px;color:var(--text-faint);font-size:9.5px}
+
+/* ---------- summary ---------- */
+.summary{display:flex;gap:8px;padding:12px 14px 4px}
+.chip{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 0;text-align:center}
+.chip .n{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.chip .l{font-size:9px;letter-spacing:.1em;color:var(--text-faint);margin-top:1px}
+.chip.p .n{color:var(--green)}.chip.f .n{color:var(--amber)}.chip.n .n{color:var(--text-dim)}
+
+/* ---------- sections ---------- */
+section{padding:14px}
+.sec-head{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.sec-num{font-family:"SF Mono",Menlo,monospace;font-size:10px;color:var(--text-faint)}
+.sec-title{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--text-dim)}
+.sec-note{margin-left:auto;font-size:9.5px;color:var(--text-dim)}
+
+/* ---------- §01 strip ---------- */
+.strip-wrap{position:relative}
+.strip{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:2px 2px 8px}
+.strip::-webkit-scrollbar{display:none}
+.card{flex:0 0 228px;scroll-snap-align:start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.card.fail{border-left:3px solid var(--amber)}
+.card.pass{border-left:3px solid var(--green)}
+.card.not_assessable{border-left:3px solid var(--text-faint)}
+.c-name{font-family:"SF Mono",Menlo,monospace;font-size:11px;font-weight:700;overflow-wrap:anywhere}
+.c-status{float:right;font-size:9px;font-weight:700;letter-spacing:.08em;padding:2px 7px;border-radius:10px}
+.st-fail{background:rgba(245,165,36,.15);color:var(--amber)}
+.st-pass{background:rgba(52,209,123,.12);color:var(--green)}
+.st-na{background:rgba(138,138,158,.15);color:var(--text-dim)}
+.c-clause{font-size:9.5px;color:var(--text-faint);margin-top:6px}
+.c-basis{font-size:11px;color:var(--text-dim);margin-top:8px}
+.c-rx{margin-top:8px;background:var(--panel2);border-radius:7px;padding:8px 9px;font-size:11px;color:var(--text)}
+.c-rx.do-not-ship{border-left:3px solid var(--danger)}
+.c-legal{font-size:9px;color:var(--text-dim);margin-top:6px}
+.c-evid{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.evid-mini{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:6px;padding:5px 7px;font-size:9.5px;color:var(--text-dim);min-height:28px}
+.evid-mini svg{width:13px;height:13px;flex:none}
+.strip-nav{position:absolute;top:38%;width:44px;height:56px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:20px;background:rgba(10,10,15,.55);border-radius:8px;z-index:2;transition:opacity .15s}
+.strip-nav:hover{color:var(--text)}
+.strip-nav.off{opacity:0;pointer-events:none}
+#stripPrev{left:-4px}#stripNext{right:-4px}
+.strip-dots{display:flex;gap:5px;justify-content:center;margin-top:4px}
+.strip-dots .d{width:5px;height:5px;border-radius:50%;background:var(--line)}
+.strip-dots .d.on{background:var(--blue)}
+
+/* ---------- §02 flags ---------- */
+.flag-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.flag-label{font-size:9.5px;font-weight:700;letter-spacing:.12em;color:var(--blue);margin-bottom:8px}
+.flag-kv{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.flag-kv:last-child{border-bottom:0}
+.flag-kv .k{color:var(--text-faint)}
+.flag-kv .v{font-family:"SF Mono",Menlo,monospace;font-size:10.5px}
+.flag-status{color:var(--green);font-weight:700}
+.flag-cat{display:inline-block;border:1px solid var(--line);border-radius:5px;padding:2px 6px;font-size:9.5px;color:var(--text-dim);margin:2px 3px 0 0;font-family:"SF Mono",Menlo,monospace}
+.flag-note{margin-top:8px;font-size:10px;color:var(--text-dim)}
+
+/* ---------- §03 semantic ---------- */
+.sem-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
+.sem-title{font-size:11px;font-weight:700}
+.sem-sub{font-size:9.5px;color:var(--text-faint);letter-spacing:.08em;margin-bottom:8px;text-transform:uppercase}
+.sem-item{padding:7px 0;border-bottom:1px dashed var(--line);font-size:11px}
+.sem-item:last-child{border-bottom:0;padding-bottom:0}
+.sem-item .pname{font-family:"SF Mono",Menlo,monospace;font-size:10.5px;font-weight:700;color:var(--amber)}
+.sem-item .pname.na{color:var(--text-dim)}
+.sem-item .pbasis{font-size:10px;color:var(--text-faint);margin-top:2px}
+.sem-empty{font-size:11px;color:var(--text-dim);padding:6px 0}
+
+/* ---------- §04 slots (the peak) ---------- */
+#slots{background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:4px 0 0;padding:16px 14px}
+.peak-lead{font-size:11px;color:var(--text-dim);margin-bottom:12px}
+.peak-lead b{color:var(--text)}
+.slot{display:flex;gap:11px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:9px;align-items:flex-start}
+.slot .pouch{width:56px;height:56px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative}
+.slot .pouch svg{width:38px;height:38px}
+.slot.filled .pouch{background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.4)}
+.slot.filled .pouch svg{color:var(--purple)}
+.slot.fillable .pouch{background:transparent;border:1px dashed rgba(59,130,246,.7)}
+.slot.fillable .pouch svg{color:var(--blue)}
+.slot.unfillable .pouch{background:rgba(138,138,158,.08);border:1px solid var(--line)}
+.slot.unfillable .pouch svg{color:var(--text-faint)}
+.slot.unfillable .pouch::after{content:"";position:absolute;left:6px;right:6px;top:50%;height:1.5px;background:var(--line);transform:rotate(-24deg)}
+.slot .body{flex:1;min-width:0}
+.slot .sname{font-family:"SF Mono",Menlo,monospace;font-size:10.5px;font-weight:700;overflow-wrap:anywhere}
+.slot .sstate{float:right;font-size:8.5px;font-weight:700;letter-spacing:.08em;padding:2px 6px;border-radius:9px}
+.ss-filled{background:rgba(167,139,250,.15);color:var(--purple)}
+.ss-fillable{background:rgba(59,130,246,.15);color:var(--blue)}
+.ss-unfillable{background:rgba(138,138,158,.15);color:var(--text-dim)}
+.ss-ref{background:transparent;color:var(--text-faint);border:1px solid var(--line)}
+.slot .sdesc{font-size:10.5px;color:var(--text-dim);margin-top:4px}
+.slot .srefs{font-size:9.5px;color:var(--text-faint);margin-top:4px}
+.badge-case{display:inline-block;background:rgba(52,209,123,.14);color:var(--green);font-size:8.5px;font-weight:700;letter-spacing:.08em;border-radius:8px;padding:2px 7px;margin-top:6px}
+.slot-reveal{margin-top:8px;font-size:10.5px;color:var(--text-dim);background:var(--bg);border-radius:7px;padding:8px 9px;border-left:2px solid var(--green)}
+.slot-reveal .em{color:var(--text)}
+.ref-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.ref-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:9.5px;color:var(--text-faint)}
+.ref-chip svg{width:13px;height:13px}
+.peak-hint{margin-top:10px;font-size:10px;color:var(--text-faint)}
+
+/* ---------- §05 fix ---------- */
+.fix-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.fix-title{font-size:12px;font-weight:700}
+.fix-desc{font-size:11px;color:var(--text-dim);margin-top:5px}
+.fix-form{display:flex;gap:6px;margin-top:10px}
+.fix-form select,.fix-form input{background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--text);padding:8px;font-size:11px;min-height:42px}
+.fix-form input{flex:1}
+.btn-primary{width:100%;margin-top:8px;background:var(--blue);color:#fff;border-radius:7px;padding:10px;font-weight:700;font-size:12px;min-height:44px}
+.fix-caveat{margin-top:8px;font-size:10px;color:var(--amber)}
+
+/* ---------- §06 ---------- */
+.ba{display:flex;gap:8px}
+.ba .col{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
+.ba .h{font-size:9px;letter-spacing:.12em;color:var(--text-faint);margin-bottom:7px}
+.ba-row{display:flex;align-items:flex-start;gap:6px;font-family:"SF Mono",Menlo,monospace;font-size:9.5px;margin:4px 0;color:var(--text-dim)}
+.ba-name{overflow-wrap:normal}
+.ba-row .st{margin-top:1px}
+.ba-dot{width:6px;height:6px;border-radius:50%;flex:none;margin-top:4px}
+.ba-dot.fail{background:var(--amber)}.ba-dot.pass{background:var(--green)}
+.ba-note{margin-top:8px;font-size:9.5px;color:var(--text-dim)}
+
+footer{padding:12px 14px 18px;font-size:9.5px;color:var(--text-dim);border-top:1px solid var(--line);margin-top:10px}
+</style>
+</head>
+<body>
+
+<!-- shape dictionary: one symbol per dispute evidence_type -->
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="sh-tag" viewBox="0 0 24 24"><path d="M3 3h8l10 10-8 8L3 11V3z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1.8" fill="currentColor"/></symbol>
+  <symbol id="sh-envelope" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2 7l10 6 10-6" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="sh-address" viewBox="0 0 24 24"><path d="M4 20V9l8-6 8 6v11" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="13" width="6" height="7" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="sh-signature" viewBox="0 0 24 24"><path d="M3 17c2-6 4-9 6-9s1 6 3 6 3-8 5-8 2 7 4 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 21h16" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="sh-log" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="sh-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2"/><rect x="8" y="14" width="3" height="3" fill="currentColor"/></symbol>
+  <symbol id="sh-listing" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="sh-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+</svg>
+
+<header>
+  <div class="brand"><span class="dot"></span>Preflight for PayPal<span class="ver">V5</span></div>
+  <div class="idrow">
+    <input id="capInput" value="3J366679AY2283450" spellcheck="false" aria-label="capture id">
+    <button class="btn-load" id="btnLoad">Load</button>
+  </div>
+  <div class="metarow">
+    <span>order_id <span class="mono">3UJ2460…8874H</span></span>
+    <span>backend <b class="ok">online</b></span>
+    <span>LLM <b id="llmState">unavailable</b></span>
+  </div>
+  <details class="fallback">
+    <summary>ORDER_ID (manual fallback — used only if capture↔order resolution fails)</summary>
+    <input placeholder="order_id" spellcheck="false">
+  </details>
+  <div class="simrow">
+    <button class="sim-btn" id="tglLlm" aria-pressed="false">simulate: LLM available</button>
+    <button class="sim-btn" id="tglOff" aria-pressed="false">simulate: backend offline</button>
+  </div>
+</header>
+
+<!-- real fixture value: capture_F.status = PENDING, status_details.reason = BUYER_COMPLAINT -->
+<div class="dispute-banner" id="disputeBanner">
+  <b>This capture is PENDING — reason: BUYER_COMPLAINT.</b>
+  A dispute is already open on this order. Actions below do not close or affect the dispute.
+  <span class="src">capture.status_details.reason — read from the Orders API response</span>
+</div>
+
+<div class="summary" id="summary"></div>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><span class="sec-title">DIAGNOSTIC CHECKS</span><span class="sec-note" id="checkCount"></span></div>
+  <div class="strip-wrap">
+    <button class="strip-nav" id="stripPrev" aria-label="previous check">‹</button>
+    <div class="strip" id="strip"></div>
+    <button class="strip-nav" id="stripNext" aria-label="next check">›</button>
+  </div>
+  <div class="strip-dots" id="stripDots"></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><span class="sec-title">PAYPAL FLAGS</span><span class="sec-note">declared-data only</span></div>
+  <div class="flag-box" id="flagBox"></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><span class="sec-title">SEMANTIC LAYER</span></div>
+  <div id="semRoot"></div>
+</section>
+
+<section id="slots">
+  <div class="sec-head"><span class="sec-num">04</span><span class="sec-title">EVIDENCE SLOTS</span></div>
+  <div class="peak-lead">Each shape below maps to <b>one dispute evidence category</b> — the same shape, every time it appears on this panel, means the same category.</div>
+  <div id="slotRoot"></div>
+  <div class="peak-hint">Slot states: <b>filled</b> = the evidence exists · <b>fillable</b> = you can still produce it · <b>unfillable</b> = it cannot be produced for this order.</div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><span class="sec-title">FIX: REGISTER TRACKING</span></div>
+  <div class="fix-card">
+    <div class="fix-title" id="fixTitle"></div>
+    <div class="fix-desc" id="fixDesc"></div>
+    <div class="fix-form">
+      <select id="carrierSel" aria-label="carrier">
+        <option>UPS</option><option>USPS</option><option>FEDEX</option><option>DHL</option><option>OTHER</option>
+      </select>
+      <input id="trackNum" placeholder="tracking #" aria-label="tracking number">
+    </div>
+    <input id="carrierOther" placeholder="carrier name (required for OTHER)" style="display:none;width:100%;margin-top:6px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--text);padding:8px;font-size:11px;min-height:38px">
+    <button class="btn-primary" id="btnPrepare">Prepare registration</button>
+    <div class="fix-caveat">Registering tracking does not affect the open dispute on this capture.</div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><span class="sec-title">BEFORE / AFTER</span><span class="sec-note">re-check</span></div>
+  <div class="ba">
+    <div class="col"><div class="h">BEFORE</div><div id="baBefore"></div></div>
+    <div class="col"><div class="h">AFTER</div><div id="baAfter"></div></div>
+  </div>
+  <div class="ba-note">"after" reflects the state once PayPal's own trackers read-back confirms registration (§05) — not immediately on submission.</div>
+</section>
+
+<footer>declared-data snapshot · not legal advice · US Seller Protection terms</footer>
+
+<script>
+/* ============================================================
+   DATA — output of gen_mock.py:
+   backend.rules.evaluate(order_F_fixture, [], meaning.run(order_F))
+   Displayed values (check names, statuses, basis, evidence,
+   summary, warnings) come only from this object — nothing is
+   hand-typed. Two unused echo keys of the source JSON are
+   omitted (verdict.meaning.ran / verdict.meaning.semantic —
+   the panel renders the top-level "semantic" object instead).
+   ============================================================ */
+const DATA = {
+ "capture_id": "3J366679AY2283450",
+ "order_id": "3UJ2460633408874H",
+ "capture_status": "PENDING",
+ "capture_status_reason": "BUYER_COMPLAINT",
+ "semantic": {
+  "ran": false, "semantic": null, "fraud_warnings": [],
+  "unassessable_patterns": [
+   {"name":"MISMATCHED_SHIP_TO_VS_BILLING_COUNTRY","reason":"payer billing country is not exposed by the Orders API response used here"},
+   {"name":"RAPID_REPEAT_HIGH_VALUE_BUYER","reason":"requires cross-order buyer history, not available from a single capture/order lookup"},
+   {"name":"FIRST_TIME_BUYER_EXPEDITED_SHIPPING_REQUEST","reason":"buyer transaction history and shipping-speed preference are not exposed by this API"}
+  ]
+ },
+ "verdict": {
+  "flags":[{"capture_id":"3J366679AY2283450","status":"ELIGIBLE","dispute_categories":["ITEM_NOT_RECEIVED","UNAUTHORIZED_TRANSACTION"]}],
+  "summary":{"n_pass":3,"n_fail":2,"n_not_assessable":2},
+  "checks":[
+   {"condition":"SHIP_TO_TRANSACTION_ADDRESS","status":"fail","basis":"purchase_units[].shipping is absent — no confirmed address on the transaction","clause":"US Seller Protection terms §1(a) — Shipped to the address on the Transaction","prescription":"Do not ship — obtain the buyer's confirmed address via a new transaction","expected_evidence":["PROOF_OF_DELIVERY_ADDRESS","TRACKING_INFORMATION"]},
+   {"condition":"TRACKING_REQUIRED","status":"fail","basis":"no trackers with a tracking_number found for this capture","clause":"US Seller Protection terms §1(b) — Proof of shipment or delivery","prescription":"Add tracking — button (REGISTER_TRACKING)","expected_evidence":["PROOF_OF_FULFILLMENT","TRACKING_INFORMATION"]},
+   {"condition":"PHYSICAL_GOODS_DECLARED","status":"pass","basis":"items[0].category=PHYSICAL_GOODS","clause":"US Seller Protection terms §1 — Eligible item types (Physical Goods)","prescription":"Item is not declared as physical goods — evaluate under the Intangible Goods Additional Requirements path instead","expected_evidence":["ITEM_DESCRIPTION_OR_LISTING"]},
+   {"condition":"INTANGIBLE_ADDITIONAL_REQS","status":"not_assessable","basis":"no digital/service signal present","clause":"US Seller Protection terms — Intangible Goods Additional Requirements","prescription":"Keep fulfillment logs/proof of service delivery per US Intangible Goods Additional Requirements","expected_evidence":["PROOF_OF_SERVICE_OR_DELIVERY_LOG"]},
+   {"condition":"HIGH_VALUE_SIGNATURE","status":"pass","basis":"amount.value=10.0 USD < $750 threshold","clause":"US Seller Protection terms §1(c) — Signature Confirmation for high-value items","prescription":"Use signature confirmation","expected_evidence":["SIGNATURE_CONFIRMATION"]},
+   {"condition":"SHIP_WITHIN_DAYS","status":"not_assessable","basis":"no shipment date recorded yet; cannot compute remaining shipment window","clause":"US Seller Protection terms §1(d) — Timely shipment window","prescription":"Ship within the required window","expected_evidence":["SHIPMENT_DATE_RECORD","PROOF_OF_FULFILLMENT"]},
+   {"condition":"EXCLUDED_CATEGORY","status":"pass","basis":"items[0].name/description matched no excluded-category keyword","clause":"US Seller Protection terms §2 — Excluded item categories","prescription":"Category excluded from Seller Protection","expected_evidence":["CATEGORY_DOCUMENTATION"]}
+  ],
+  "meaning":{
+   "fraud_warnings":[{"name":"NO_SHIPPING_ADDRESS_ON_FILE","signal_basis":"purchase_units[].shipping absent on a capture-complete order"}],
+   "unassessable_patterns":[
+    {"name":"MISMATCHED_SHIP_TO_VS_BILLING_COUNTRY","description":"Shipping address country differs from the payer's billing/country of residence, a pattern PayPal documents in cross-border fraud advisories.","api_assessable":false,"signal_basis":"payer billing country is not exposed by the Orders API response used here"},
+    {"name":"RAPID_REPEAT_HIGH_VALUE_BUYER","description":"Same buyer places multiple high-value orders in a short window, a pattern PayPal documents as account-takeover risk.","api_assessable":false,"signal_basis":"requires cross-order buyer history, not available from a single capture/order lookup"},
+    {"name":"FIRST_TIME_BUYER_EXPEDITED_SHIPPING_REQUEST","description":"First-time buyer requesting expedited/overnight shipping on a high-value item, a pattern PayPal documents as a fraud indicator.","api_assessable":false,"signal_basis":"buyer transaction history and shipping-speed preference are not exposed by this API"}
+   ]
+  },
+  "corrections":[{"action":"REGISTER_TRACKING","label":"Add tracking to this order"}]
+ }
+};
+
+/* shape dictionary — one shape per evidence_type */
+const SHAPES = {
+ TRACKING_INFORMATION: "sh-tag",
+ PROOF_OF_FULFILLMENT: "sh-envelope",
+ PROOF_OF_DELIVERY_ADDRESS: "sh-address",
+ SIGNATURE_CONFIRMATION: "sh-signature",
+ PROOF_OF_SERVICE_OR_DELIVERY_LOG: "sh-log",
+ SHIPMENT_DATE_RECORD: "sh-calendar",
+ ITEM_DESCRIPTION_OR_LISTING: "sh-listing",
+ CATEGORY_DOCUMENTATION: "sh-folder",
+};
+function icon(t){ return `<svg><use href="#${SHAPES[t]||'sh-log'}"/></svg>`; }
+/* break long identifiers at underscores, not mid-word */
+function brk(s){ return s.replace(/_/g, '_' + String.fromCharCode(0x200B)); } /* zero-width space after each _ */
+
+/* ---------- summary ---------- */
+const s = DATA.verdict.summary;
+document.getElementById('summary').innerHTML =
+ `<div class="chip p"><div class="n">${s.n_pass}</div><div class="l">PASS</div></div>
+  <div class="chip f"><div class="n">${s.n_fail}</div><div class="l">FAIL</div></div>
+  <div class="chip n"><div class="n">${s.n_not_assessable}</div><div class="l">N/A</div></div>`;
+document.getElementById('checkCount').textContent = DATA.verdict.checks.length + " checks";
+
+/* ---------- §01 cards ---------- */
+const strip = document.getElementById('strip');
+const pill = st => st==='fail' ? '<span class="c-status st-fail">FAIL</span>'
+             : st==='pass' ? '<span class="c-status st-pass">PASS</span>'
+             : '<span class="c-status st-na">N/A</span>';
+for (const c of DATA.verdict.checks){
+  const el = document.createElement('div');
+  el.className = 'card ' + c.status;
+  const doNotShip = /do not ship/i.test(c.prescription);
+  el.innerHTML = `${pill(c.status)}<div class="c-name">${brk(c.condition)}</div>
+    <div class="c-clause">${c.clause}</div>
+    <div class="c-basis">${c.basis}</div>
+    <div class="c-rx${doNotShip?' do-not-ship':''}">${c.prescription}</div>
+    <div class="c-legal">declared-data read · not legal advice</div>
+    <div class="c-evid">${c.expected_evidence.map(t=>`<a class="evid-mini" href="#slot-${t}">${icon(t)}<span>${brk(t)}</span></a>`).join('')}</div>`;
+  strip.appendChild(el);
+}
+/* progress dots */
+const dots = document.getElementById('stripDots');
+DATA.verdict.checks.forEach((_,i)=>{ const d=document.createElement('div'); d.className='d'+(i===0?' on':''); dots.appendChild(d); });
+const prevBtn = document.getElementById('stripPrev'), nextBtn = document.getElementById('stripNext');
+function syncNav(){
+  prevBtn.classList.toggle('off', strip.scrollLeft <= 1);
+  nextBtn.classList.toggle('off', strip.scrollLeft >= strip.scrollWidth - strip.clientWidth - 2);
+}
+strip.addEventListener('scroll',()=>{
+  const i = Math.round(strip.scrollLeft / 238);
+  [...dots.children].forEach((d,j)=>d.classList.toggle('on', j===i));
+  syncNav();
+});
+syncNav();
+/* wheel → horizontal with edge release */
+strip.addEventListener('wheel', e=>{
+  if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+  const atStart = strip.scrollLeft <= 1;
+  const atEnd = strip.scrollLeft >= strip.scrollWidth - strip.clientWidth - 2;
+  if ((e.deltaY < 0 && atStart) || (e.deltaY > 0 && atEnd)) return;
+  e.preventDefault();
+  strip.scrollLeft += e.deltaY;
+}, {passive:false});
+/* nav buttons + drag */
+document.getElementById('stripPrev').addEventListener('click',()=>strip.scrollBy({left:-238,behavior:'smooth'}));
+document.getElementById('stripNext').addEventListener('click',()=>strip.scrollBy({left:238,behavior:'smooth'}));
+let dragX=null, dragL=0, dragged=false;
+strip.addEventListener('pointerdown',e=>{dragX=e.clientX;dragL=strip.scrollLeft;dragged=false;});
+strip.addEventListener('pointermove',e=>{ if(dragX===null)return; const dx=e.clientX-dragX; if(Math.abs(dx)>6)dragged=true; strip.scrollLeft=dragL-dx; });
+strip.addEventListener('pointerup',()=>{dragX=null;});
+strip.addEventListener('click',e=>{ if(dragged){e.preventDefault();e.stopPropagation();dragged=false;} },true);
+
+/* ---------- §02 flags ---------- */
+const f = DATA.verdict.flags[0];
+document.getElementById('flagBox').innerHTML =
+ `<div class="flag-label">DECLARED-DATA SNAPSHOT</div>
+  <div class="flag-kv"><span class="k">capture_id</span><span class="v">${f.capture_id}</span></div>
+  <div class="flag-kv"><span class="k">seller_protection.status</span><span class="v flag-status">${f.status}</span></div>
+  <div class="flag-kv"><span class="k">dispute_categories</span><span class="v">${f.dispute_categories.map(c=>`<span class="flag-cat">${brk(c)}</span>`).join('')}</span></div>
+  <div class="flag-note">"ELIGIBLE" reflects what was declared — may be eligible, not a final decision. flags[] — showing 1 of 1 captures for this order.</div>`;
+
+/* ---------- §03 semantic ---------- */
+const sem = DATA.semantic;
+const mw = DATA.verdict.meaning;
+let semHtml = '';
+if (!sem.ran){
+  semHtml += `<div class="sem-card"><div class="sem-title">Semantic layer not run</div>
+    <div class="sdesc" style="font-size:10.5px;color:var(--text-dim);margin-top:4px">No LLM credentials — semantic classification skipped (ran=false). Nothing is inferred or fabricated in its place.</div></div>`;
+}
+semHtml += `<div class="sem-card"><div class="sem-sub">fraud warnings — API-visible match</div>`;
+semHtml += mw.fraud_warnings.length
+  ? mw.fraud_warnings.map(w=>`<div class="sem-item"><div class="pname">${brk(w.name)}</div><div class="pbasis">signal_basis: ${w.signal_basis}</div></div>`).join('')
+  : `<div class="sem-empty">no API-visible patterns matched on this capture</div>`;
+semHtml += `</div><div class="sem-card"><div class="sem-sub">unassessable patterns — not evaluable from this API</div>`;
+semHtml += mw.unassessable_patterns.map(p=>`<div class="sem-item"><div class="pname na">${brk(p.name)}</div><div class="pbasis">reason: ${p.signal_basis}</div></div>`).join('');
+semHtml += `<div class="pbasis" style="margin-top:8px;font-size:9.5px;color:var(--text-faint)">table-driven — returned even when meaning.ran = false</div></div>`;
+document.getElementById('semRoot').innerHTML = semHtml;
+
+/* ---------- §04 evidence slots ---------- */
+/* which types this order's checks reference */
+const referenced = [...new Set(DATA.verdict.checks.flatMap(c=>c.expected_evidence))];
+const refs = {}; /* type -> [{condition,status}] */
+for (const c of DATA.verdict.checks) for (const t of c.expected_evidence){
+  (refs[t]=refs[t]||[]).push({condition:c.condition,status:c.status});
+}
+/* slot states — hand-authored UI copy keyed to THIS fixture's state
+   (not backend output; the backend emits no slot-state field):
+   unfillable = evidence cannot be produced for this order
+   fillable   = an in-panel action or shipping can still produce it
+   filled     = the evidence already exists in the order data
+   referenced = referenced by a passing / not-assessable check */
+const SLOT_STATE = {
+ PROOF_OF_DELIVERY_ADDRESS: {st:'unfillable', desc:'Empty — no shipping address exists on this order, so a compliant proof-of-address cannot be produced for it.'},
+ TRACKING_INFORMATION:      {st:'fillable',   desc:'Empty — the slot TRACKING_REQUIRED (§01) is waiting on. §05 below fills it.'},
+ PROOF_OF_FULFILLMENT:      {st:'fillable',   desc:'Empty on this order — but this evidence_type is one TRACKING_REQUIRED (§01) is waiting on.'},
+ PROOF_OF_SERVICE_OR_DELIVERY_LOG: {st:'unfillable', desc:'Reserved for the Intangible Goods track — not the applicable category for this capture’s declared PHYSICAL_GOODS data.'},
+};
+const PEAK_NOTE = {
+ PROOF_OF_FULFILLMENT: 'This capture’s real dispute record: evidences[] contains <span class="em">PROOF_OF_FULFILLMENT × 2 (submitted by seller)</span> — same category as this slot’s shape.'
+};
+const slotRoot = document.getElementById('slotRoot');
+/* big slots = types referenced by failing checks */
+const bigTypes = referenced.filter(t=>refs[t].some(r=>r.status==='fail'));
+const smallTypes = referenced.filter(t=>!bigTypes.includes(t));
+for (const t of bigTypes){
+  const info = SLOT_STATE[t] || {st:'fillable',desc:''};
+  const el = document.createElement('div');
+  el.className = 'slot ' + info.st;
+  el.id = 'slot-' + t;
+  const refTxt = refs[t].map(r=>`${brk(r.condition)} (${r.status})`).join(' · ');
+  const badge = t==='PROOF_OF_FULFILLMENT' ? '<span class="badge-case">SEEN IN A REAL CASE</span>' : '';
+  const reveal = PEAK_NOTE[t] ? `<div class="slot-reveal">${PEAK_NOTE[t]}</div>` : '';
+  el.innerHTML = `<div class="pouch">${icon(t)}</div>
+    <div class="body"><span class="sstate ss-${info.st}">${info.st.toUpperCase()}</span>
+      <div class="sname">${brk(t)}</div>
+      <div class="sdesc">${info.desc}</div>
+      <div class="srefs">referenced by: ${refTxt}</div>
+      ${badge}${reveal}</div>`;
+  slotRoot.appendChild(el);
+}
+/* remaining referenced types as compact chips */
+if (smallTypes.length){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `<div class="srefs" style="margin:10px 0 4px">also referenced by this order's checks:</div>`;
+  const list = document.createElement('div'); list.className='ref-list';
+  for (const t of smallTypes){
+    const chip = document.createElement('a');
+    chip.className='ref-chip'; chip.href='javascript:void(0)'; chip.title = refs[t].map(r=>`${r.condition} (${r.status})`).join(' · ');
+    chip.innerHTML = `${icon(t)}<span>${brk(t)}</span>`;
+    list.appendChild(chip);
+  }
+  wrap.appendChild(list);
+  slotRoot.appendChild(wrap);
+}
+
+/* ---------- §05 fix ---------- */
+const corr = DATA.verdict.corrections[0];
+document.getElementById('fixTitle').textContent = corr.label;
+document.getElementById('fixDesc').textContent =
+ 'Fills the TRACKING_INFORMATION slot above. May update the TRACKING_REQUIRED check once PayPal confirms.';
+document.getElementById('carrierSel').addEventListener('change',e=>{
+  document.getElementById('carrierOther').style.display = e.target.value==='OTHER' ? 'block':'none';
+});
+document.getElementById('btnPrepare').addEventListener('click',()=>{
+  const c=document.getElementById('carrierSel').value, n=document.getElementById('trackNum').value||'(empty)';
+  const o = c==='OTHER' ? (document.getElementById('carrierOther').value||'(carrier name missing)') : c;
+  alert(`Confirm registration\n\ncapture_id: ${DATA.capture_id}\ncarrier: ${o}\ntracking #: ${n}\n\n(this mock stops before the API write)`);
+});
+
+/* ---------- §06 ---------- */
+const baRows = DATA.verdict.checks.filter(c=>c.status==='fail');
+/* after-state: REGISTER_TRACKING (corrections[0]) resolves TRACKING_REQUIRED only —
+   SHIP_TO_TRANSACTION_ADDRESS cannot be fixed for this order */
+const FIXED_BY_ACTION = 'TRACKING_REQUIRED';
+document.getElementById('baBefore').innerHTML = baRows.map(c=>`<div class="ba-row"><span class="ba-dot fail"></span><span class="ba-name">${brk(c.condition)} — fail</span></div>`).join('');
+document.getElementById('baAfter').innerHTML = baRows.map(c=>{
+  const st = c.condition===FIXED_BY_ACTION ? 'pass' : 'fail';
+  return `<div class="ba-row"><span class="ba-dot ${st}"></span><span class="ba-name">${brk(c.condition)} — ${st}</span></div>`;
+}).join('');
+
+/* ---------- sim toggles ---------- */
+document.getElementById('tglLlm').addEventListener('click',e=>{
+  const on = e.target.getAttribute('aria-pressed')==='true';
+  e.target.setAttribute('aria-pressed', String(!on));
+  document.getElementById('llmState').textContent = on ? 'unavailable' : 'available';
+  e.target.textContent = on ? 'simulate: LLM available' : 'simulating: LLM available';
+});
+document.getElementById('tglOff').addEventListener('click',e=>{
+  const on = e.target.getAttribute('aria-pressed')==='true';
+  e.target.setAttribute('aria-pressed', String(!on));
+  document.querySelector('.metarow .ok').textContent = on ? 'online' : 'offline';
+  document.querySelector('.metarow .ok').style.color = on ? 'var(--green)' : 'var(--danger)';
+});
+</script>
+</body>
+</html>

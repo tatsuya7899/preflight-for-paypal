@@ -1,0 +1,171 @@
+{
+ "capture_id": "3J366679AY2283450",
+ "order_id": "3UJ2460633408874H",
+ "semantic": {
+  "ran": false,
+  "semantic": null,
+  "fraud_warnings": [],
+  "unassessable_patterns": [
+   {
+    "name": "MISMATCHED_SHIP_TO_VS_BILLING_COUNTRY",
+    "reason": "payer billing country is not exposed by the Orders API response used here"
+   },
+   {
+    "name": "RAPID_REPEAT_HIGH_VALUE_BUYER",
+    "reason": "requires cross-order buyer history, not available from a single capture/order lookup"
+   },
+   {
+    "name": "FIRST_TIME_BUYER_EXPEDITED_SHIPPING_REQUEST",
+    "reason": "buyer transaction history and shipping-speed preference are not exposed by this API"
+   }
+  ]
+ },
+ "verdict": {
+  "order_id": "3UJ2460633408874H",
+  "capture_id": "3J366679AY2283450",
+  "flags": [
+   {
+    "capture_id": "3J366679AY2283450",
+    "status": "ELIGIBLE",
+    "dispute_categories": [
+     "ITEM_NOT_RECEIVED",
+     "UNAUTHORIZED_TRANSACTION"
+    ]
+   }
+  ],
+  "summary": {
+   "n_pass": 3,
+   "n_fail": 2,
+   "n_not_assessable": 2
+  },
+  "checks": [
+   {
+    "condition": "SHIP_TO_TRANSACTION_ADDRESS",
+    "status": "fail",
+    "basis": "purchase_units[].shipping is absent — no confirmed address on the transaction",
+    "clause": "US Seller Protection terms §1(a) — Shipped to the address on the Transaction",
+    "prescription": "Do not ship — obtain the buyer's confirmed address via a new transaction",
+    "expected_evidence": [
+     "PROOF_OF_DELIVERY_ADDRESS",
+     "TRACKING_INFORMATION"
+    ]
+   },
+   {
+    "condition": "TRACKING_REQUIRED",
+    "status": "fail",
+    "basis": "no trackers with a tracking_number found for this capture",
+    "clause": "US Seller Protection terms §1(b) — Proof of shipment or delivery",
+    "prescription": "Add tracking — button (REGISTER_TRACKING)",
+    "expected_evidence": [
+     "PROOF_OF_FULFILLMENT",
+     "TRACKING_INFORMATION"
+    ]
+   },
+   {
+    "condition": "PHYSICAL_GOODS_DECLARED",
+    "status": "pass",
+    "basis": "items[0].category=PHYSICAL_GOODS",
+    "clause": "US Seller Protection terms §1 — Eligible item types (Physical Goods)",
+    "prescription": "Item is not declared as physical goods — evaluate under the Intangible Goods Additional Requirements path instead",
+    "expected_evidence": [
+     "ITEM_DESCRIPTION_OR_LISTING"
+    ]
+   },
+   {
+    "condition": "INTANGIBLE_ADDITIONAL_REQS",
+    "status": "not_assessable",
+    "basis": "no digital/service signal present",
+    "clause": "US Seller Protection terms — Intangible Goods Additional Requirements",
+    "prescription": "Keep fulfillment logs/proof of service delivery per US Intangible Goods Additional Requirements",
+    "expected_evidence": [
+     "PROOF_OF_SERVICE_OR_DELIVERY_LOG"
+    ]
+   },
+   {
+    "condition": "HIGH_VALUE_SIGNATURE",
+    "status": "pass",
+    "basis": "amount.value=10.0 USD < $750 threshold",
+    "clause": "US Seller Protection terms §1(c) — Signature Confirmation for high-value items (legalhub threshold table, 750 USD)",
+    "prescription": "Use signature confirmation",
+    "expected_evidence": [
+     "SIGNATURE_CONFIRMATION"
+    ]
+   },
+   {
+    "condition": "SHIP_WITHIN_DAYS",
+    "status": "not_assessable",
+    "basis": "no shipment date recorded yet; cannot compute remaining shipment window",
+    "clause": "US Seller Protection terms §1(d) — Timely shipment window",
+    "prescription": "Ship within your stated timeframe (required for pre-order/made-to-order); otherwise recommended within 7 days",
+    "expected_evidence": [
+     "SHIPMENT_DATE_RECORD",
+     "PROOF_OF_FULFILLMENT"
+    ]
+   },
+   {
+    "condition": "EXCLUDED_CATEGORY",
+    "status": "pass",
+    "basis": "items[0].name/description matched no excluded-category keyword",
+    "clause": "US Seller Protection terms §2 — Excluded item categories",
+    "prescription": "Category excluded from Seller Protection",
+    "expected_evidence": [
+     "CATEGORY_DOCUMENTATION"
+    ]
+   }
+  ],
+  "meaning": {
+   "ran": true,
+   "semantic": {
+    "ran": false,
+    "semantic": null,
+    "fraud_warnings": [],
+    "unassessable_patterns": [
+     {
+      "name": "MISMATCHED_SHIP_TO_VS_BILLING_COUNTRY",
+      "reason": "payer billing country is not exposed by the Orders API response used here"
+     },
+     {
+      "name": "RAPID_REPEAT_HIGH_VALUE_BUYER",
+      "reason": "requires cross-order buyer history, not available from a single capture/order lookup"
+     },
+     {
+      "name": "FIRST_TIME_BUYER_EXPEDITED_SHIPPING_REQUEST",
+      "reason": "buyer transaction history and shipping-speed preference are not exposed by this API"
+     }
+    ]
+   },
+   "fraud_warnings": [
+    {
+     "name": "NO_SHIPPING_ADDRESS_ON_FILE",
+     "signal_basis": "purchase_units[].shipping absent on this order"
+    }
+   ],
+   "unassessable_patterns": [
+    {
+     "name": "MISMATCHED_SHIP_TO_VS_BILLING_COUNTRY",
+     "description": "Shipping address country differs from the payer's billing/country of residence, a pattern PayPal documents in cross-border fraud advisories.",
+     "api_assessable": false,
+     "signal_basis": "payer billing country is not exposed by the Orders API response used here"
+    },
+    {
+     "name": "RAPID_REPEAT_HIGH_VALUE_BUYER",
+     "description": "Same buyer places multiple high-value orders in a short window, a pattern PayPal documents as account-takeover risk.",
+     "api_assessable": false,
+     "signal_basis": "requires cross-order buyer history, not available from a single capture/order lookup"
+    },
+    {
+     "name": "FIRST_TIME_BUYER_EXPEDITED_SHIPPING_REQUEST",
+     "description": "First-time buyer requesting expedited/overnight shipping on a high-value item, a pattern PayPal documents as a fraud indicator.",
+     "api_assessable": false,
+     "signal_basis": "buyer transaction history and shipping-speed preference are not exposed by this API"
+    }
+   ]
+  },
+  "corrections": [
+   {
+    "action": "REGISTER_TRACKING",
+    "label": "Add tracking to this order"
+   }
+  ]
+ }
+}

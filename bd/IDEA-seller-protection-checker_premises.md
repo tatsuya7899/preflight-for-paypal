@@ -24,7 +24,7 @@ Created: 2026-10-11 / モード: 早駆け(提出物型 — PayPal AI Hackathon�
 ## ② 領域スコープ
 - 関連領域: PayPalセラーの注文リスク管理 / Seller Protection適合 / 出荷前診断 / 詐欺パターン検知 / 証拠衛生
 - 選択スコープ: **出荷前の「Seller Protection適合診断」** — orders/shipment APIで注文を読み、PayPal公式の保護条件と詐欺パターンに照合し、「対象外の理由+対象に戻す処方」を提示する
-- 選択理由: PayPal固有の仕様(保護条件・公式詐欺パターン)が荷重=「PayPal無しに作れない」が成立。対象者=全PayPalセラー(実在)。スイープで同ジョブの占有者なし
+- 選択理由: PayPal固有の仕様(保護条件・公式詐欺パターン)が荷重=「PayPal無しに作れない」が成立。対象者=全PayPalセラー(実在)。スイープで同ジョブの占有者なし →訂正: Guzcoがサービス一機能として部分占有(下の更新節)。「セルフサーブ製品の占有者なし」が正
 
 ## ③ 立ち位置
 - 実施主体: 個人(ソロ)
@@ -83,7 +83,7 @@ Created: 2026-10-11 / モード: 早駆け(提出物型 — PayPal AI Hackathon�
 
 ### 競合スイープの更新(2026-10-11・生成の分業の実走で発見)
 
-**新事実: Guzco(guzco.ai)が同ジョブを部分占有** — 「Seller Protection requirements checked at checkout and pre-shipment・address mismatches・missing signature on high-value orders・ineligible item typesをfulfilmentへflag」と製品ページ(guzco.ai/solutions/paypal)で明言。上表の「製品なし」判定はこの時点で更新必要となった(Guzcoはスイープ時に見落とし)。ただし構造: Guzcoは**紛争対応のdone-for-youサービス**(Talk to an Expert型・Shopify連携・中規模セラー向け)の一機能としての事前チェック。「出荷前適合診断を主看板にしたセルフサーブ型ツール」は引き続き未発見。**残る差別化**: ①セルフサーブ×長尾(紛争サービス料金が見合わない層) ②PayPal自身の`seller_protection.status`旗をオラクルとして並置表示(Guzcoは自社ルール判定) ③AIの意味層(カテゴリ詐称検出) ④診断→追跡登録→再検証の閉ループをワンクリックで。Gate 0審査員へは「サービスの一機能 vs セルフサーブの製品」の棲み分けで説明する。
+**新事実: Guzco(guzco.ai)が同ジョブを部分占有** — 「Seller Protection requirements checked at checkout and pre-shipment・address mismatches・missing signature on high-value orders・ineligible item typesをfulfilmentへflag」と製品ページ(guzco.ai/solutions/paypal)で明言。上表の「製品なし」判定はこの時点で更新必要となった(Guzcoはスイープ時に見落とし)。ただし構造: Guzcoは**紛争対応のdone-for-youサービス**(Talk to an Expert型・Shopify連携・中規模セラー向け)の一機能としての事前チェック。「出荷前適合診断を主看板にしたセルフサーブ型ツール」は引き続き未発見。**残る差別化**: ①セルフサーブ×長尾(紛争サービス料金が見合わない層) ②PayPal自身の`seller_protection.status`旗をオラクルとして並置表示(~~Guzcoは自社ルール判定~~ →追補1で撤回・反証あり) ③AIの意味層(カテゴリ詐称検出) ④診断→追跡登録→再検証の閉ループをワンクリックで。Gate 0審査員へは「サービスの一機能 vs セルフサーブの製品」の棲み分けで説明する。
 
 **生成の分業(v1.22)の実証記録**: 2系統の生成エージェント(殺し履歴・本候補の存在を知らないクリーンルーム系α / スポンサーネイティブ・ヒューリスティック系β)を並列走行。結果: **βは本候補と同一点に独立収束**=ヒューリスティックの最適解が本候補を指す裏付け(収束の証拠)。αは異なる3候補(紛争対応Copilot・回収交渉Autopilot・Console拡張)を生成=他の空き地の輪郭も確認(発散の実績)。併せてαの新発見: **sandbox Disputes APIは全ライフサイクル再現可能**(create dispute/require-evidence/provide-evidence/settleの限定メソッド+buyer側クレデンシャル)=Gate 0条件2の2幕デモで「保護外注文が実際に紛争に負ける」まで実演できる可能性が開けた。
 
@@ -144,6 +144,7 @@ Created: 2026-10-11 / モード: 早駆け(提出物型 — PayPal AI Hackathon�
 - **禁止事項**: 「旗ELIGIBLE vs 我々の違反」の裸の対置(審査員に「スタブが言ってるだけ」と読まれる)。旗には常時「宣言値スナップショット(必要条件)」ラベル+我々の診断は旗の定義域外に配置
 - **dispute_categories=[INR,UNAUTHORIZED]は仕様正しい**(SNADはSeller Protection非対象)=「ELIGIBLEでもSNAD紛争は守らない」は追加の実演材料
 - **新必須条件**: ①Disputes lifecycle実測(失敗=NoGo) ②payment_source変動で旗が動くか ③3幕構成のデモ再設計 ④意味層は無争議症例のみ ⑤規約はUS版にピン(デジタル品は無形品要件で対象になる管轄あり) ⑥tracking登録の書き込みもsandbox実測要(書き込みスタブの可能性)
+- **条件②の降格注記(2026-10-11・M2/M7レビュー由来)**: ②は旗がスタブと判明したことで「オラクルが動くか」の前提自体が変化したため、必須条件から残条件(P1タスク)へ降格——変動確認は引き続き提出前に実施するが、Go判定のブロッカーではない
 
 ## Gate 0判定(仮想審査員・2026-10-11): **条件つきGo(現形30/50・条件充足で35〜38見込み)**
 
@@ -205,3 +206,35 @@ HATEOASにPUT(replace)/PATCH(edit)リンク=更新系も開放。**診断→処�
 **提出までのクリティカルパス**: P0-1 診断エンジン実装(ルール層+意味層+固定処方表) / P0-2 US規約ピン(Intangible Goods Additional Requirementsの存在=「デジタル一律対象外」は誤ルール) / P0-3 3幕デモ台本+録画 / P1 紛争n=2再現・payment_source変動・AI審査フィルター対策7項目・README=デモ台本化・Guzco差分1文。
 
 **製品化の率直評価**: Guzco差別化は座標として立つが堀は未証明。弱さ4点: ①Sherlockリスク(PayPal本体が機能内蔵したら消える) ②distributionが本質的コスト(配送/OMS組込みが要) ③意味層のground truth依存 ④紛争率<1%で単体課金は薄い。現実的な行き先: 配送/リスティングツール組込みor証拠衛生〜係争証拠パッケージへ拡張。「旗は宣言値しか見ない(sandbox観測)」は問題の存在証明として使えるが文言は「sandboxで観測」に留める。
+
+## 追補1(2026-10-11・Gate 1レビュー由来 — 未検証断定の訂正)
+
+**訂正対象**: 「残る差別化 ②PayPal自身の`seller_protection.status`旗をオラクルとして並置表示(Guzcoは自社ルール判定)」の括弧内断定。
+
+**反証**: Guzco公式ページ(guzco.ai/solutions/paypal)の案件UIスクリーンショットに「SP Eligible」「SP Not covered」のタグ表示がある(PayPalの旗か自社判定かの区別はつかないが、少なくとも保護適格の表示はしている)=括弧内の断定「Guzcoは自社ルール判定」は一次確認できず反証が存在するため撤回。
+
+**併せて確認した新事実**: Guzcoは「provider-specific evidence playbooks」としてreason-code→必須証拠フィールドの写像を公開済み(guzco.ai/resources・2026-07-24付)=条件↔証拠写像は文書形で既存。**SyncPal**(syncpal.co)は追跡番号のShopify/Woo→PayPal自動同期で書き込み側を隣接占有(同ジョブでなく隣接)。
+
+**差別化の訂正後の残り**: ①セルフサーブ×長尾(Guzcoの料金形が見合わない層・PayPalコンソール内在形) ②旗と行為条件の**乖離の露出**(Guzcoは旗か自社判定のどちらかを出すが乖離は出していない=未発見) ③AIの意味層 ④診断→追跡登録→再検証の閉ループ。②が差別化の実質で、③は退化時も正直表示の設計。
+
+**波及**: dtfのZ軸は「写像の存在」から「旗と条件の乖離の露出」に再特定済み(IDEA-..._dtf.mdレバーC参照)。
+
+## 追補2(2026-10-11・Gate 3レビュー由来 — 競合スイープの追加層)
+
+Canvas Gate 3の類似チェックで発見した追加占有・隣接者(上流反映・ADR同伴):
+
+- **追跡同期系はカテゴリとして密**: SyncPalの他に**TrackiPal**(PayPal公式Approved Partner)・Synctrack・Proveway・Trackshore等。全件ストア側から同期する型で「どの注文に追跡が要るか」の診断はしない=書き込み側の隣接占有層
+- **PayPal自前の予防層**: Chargeback Protection/危険取引の事前警告・取引詳細の旗=不正リスク側で「保護条件の適合」は診ない(GEN追補3と整合)
+- **保証付きship判定層**: Riskified・Signifyd・Shopify Protect等はcheckout時点でapprove/rejectを返し係争責任を負う。「出荷するか」判断の別形占有者だがSP条件適合は診ず価格帯も中規模〜(長尾外)
+
+**波及**: 占有の密度は「追跡書き込み側」と「ship判定側」に厚い。弊案の残る位置=「**この注文はどの保護条件が欠けているかの診断**を、PayPalコンソール内在・セルフサーブ・旗乖離の露出で出す」組合せ(未発見継続)。
+
+## 追補3(2026-10-11・M2/M7独立レビュー由来 — 提出要件と規約の一次確認で得た新事実)
+
+- **【重大】Devpost公式要件は「審査員が実際に動かせるワーキングビルド」** — "judges must be able to actually run or interact with a working build… A design mockup, static prototype, or non-functional demo does not meet this requirement"。デモ動画+READMEだけでは要件不適合。**backendのfixtureモード起動手順+sandbox資格情報取得〜拡張sideloadの導入手順書が提出要件に追加**となった
+- **既存資産の再利用は規約適合** — "new or existing projects, as long as you make meaningful progress during the course of the hackathon"。提出窓は10/01開始=_archive資産改造+10/11以降の実装は窓内
+- **MSC期日の実測値** — 結果発表=12/21・審査=12/01〜12/15(Devpost schedule)。「入賞」証拠の検収可能時点は11/12ではなく12/21
+- **賞金上限の実測値** — 1プロジェクトの受賞上限=Grand Prize 1つ+スポンサー賞1つ(Section 8)=実質上限~$17,000級
+- **紛争率<1%の外部傍証** — PayPal公式High Volume Dispute Fee発動閾値=1.5%・第三者推定=0.60%/txn。「<1%」は平均セラーの近似として妥当だが対象セグメント固有の率は引き続き未検証(「仮説」区分維持)
+- **US規約の版ドリフト(文言監査が必須と確定)** — SHIP_WITHIN_DAYSは要件でなく推奨("it is recommended"=通常品7日・pre-order/MTOのみspecified timeframeが義務)。HIGH_VALUE_SIGNATUREは2026-01-26以降mandatory→recommendedに版ドリフト兆候(legalhub側は閾値表を掲載継続)=**条項根拠は現行US版の文書日付にピンが必要**。policy.pyのbasis文言に「required」誤記があると審査員の前で誤助言になる
+- **Gate 0新必須条件②(payment_source変動)の降格明文化** — 旗スタブ判明でオラクル前提自体が変化したため残条件へ降格(P1タスクとして日程化)

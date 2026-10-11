@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<!--
+  v3 — panel_v2.html への敵対的レビュー(採点6.15/8.0・P0×4)を反映。
+  パラダイム/メタファー/山は不変(所有者決定済み・変更不可)。
+
+  パラダイム: 横ストリップ(縦ホイール→横移動変換+scroll-snap)。v3でホイール変換を実配線
+    (addEventListener 'wheel')+ドラッグ+左右ナビボタンのフォールバックを追加(P0-2)。
+  中心メタファー: 証拠袋(型抜きスロット)。evidence_type ごとに専用の形(タグ/封筒/署名/印章)を
+    1対1で割り当て、辞書に無い型・辞書に無いevidence_typeは出さない(P0-3でADDRESS_CONFIRMATION孤児を解消)。
+  感情アーク: 好奇心→微警戒(実名の詐欺パターン・意味層警告)→気づき(山)→安心・行動
+  山の画面: #slots。PROOF_OF_FULFILLMENTスロットは実fixture(dispute_PP-R-XGB-10190971.json)の
+    evidences[]に実在する観測事実として重みを持たせた(P0-1)。
+  身を乗り出す瞬間: PROOF_OF_FULFILLMENTスロットをタップすると、「これは推測ではなく実際のsandbox
+    紛争ケースに記録された証拠種別と同じだ」という一致が開示される瞬間。
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=360, initial-scale=1">
+<title>Preflight for PayPal — Panel v3</title>
+<style>
+  :root{
+    --bg:#0a0a0f;
+    --bg-card:#121218;
+    --bg-card-raised:#17171f;
+    --border:#242431;
+    --text:#e9e9f0;
+    --text-dim:#9a9aa8;
+    --text-faint:#7a7a88;
+    --accent1:#3B82F6;
+    --accent2:#8B5CF6;
+    --grad:linear-gradient(135deg,var(--accent1),var(--accent2));
+    --warn:#D97706;
+    --warn-bg:rgba(217,119,6,.08);
+    --pass:#34D399;
+    --fail:#F59E0B;
+    --na:#6B7280;
+    --route:#8B5CF6;
+    --ease-expo:cubic-bezier(0.16,1,0.3,1);
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    width:360px;
+    min-height:640px;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,"Hiragino Kaku Gothic ProN",sans-serif;
+    font-size:13px;
+    line-height:1.45;
+    overflow-x:hidden;
+  }
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important;animation-iteration-count:1 !important;transition-duration:0.001ms !important;}
+  }
+
+  /* ===== Header ===== */
+  header{
+    padding:14px 14px 10px;
+    border-bottom:1px solid var(--border);
+    position:sticky;top:0;background:var(--bg);z-index:5;
+  }
+  .brand{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .brand .dot{width:7px;height:7px;border-radius:50%;background:var(--grad);flex:0 0 auto;}
+  .brand .name{font-weight:800;font-size:13px;letter-spacing:-0.01em;}
+  .brand .sub{font-size:10px;color:var(--text-faint);margin-left:auto;text-transform:uppercase;letter-spacing:.06em;}
+
+  .id-row{display:flex;gap:6px;align-items:center;}
+  .id-row input{
+    flex:1;background:var(--bg-card);border:1px solid var(--border);color:var(--text);
+    border-radius:7px;padding:7px 9px;font-size:11.5px;font-family:ui-monospace,monospace;
+  }
+  .id-row input::placeholder{color:var(--text-faint);}
+  .btn-load{
+    background:var(--bg-card-raised);border:1px solid var(--border);color:var(--text);
+    border-radius:7px;padding:7px 11px;font-size:11px;font-weight:600;cursor:pointer;
+  }
+  .btn-load:active{transform:scale(.98);}
+  .id-meta{display:flex;gap:10px;margin-top:7px;font-size:10.5px;color:var(--text-faint);flex-wrap:wrap;}
+  .id-meta b{color:var(--text-dim);font-family:ui-monospace,monospace;}
+  .id-meta b.ok{color:var(--pass);}
+  .id-meta b.bad{color:var(--fail);}
+
+  .fallback-row{margin-top:8px;}
+  .fallback-row .fb-label{font-size:9.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+  .fallback-row input{
+    width:100%;background:var(--bg-card);border:1px solid var(--border);color:var(--text);
+    border-radius:7px;padding:6px 9px;font-size:11px;font-family:ui-monospace,monospace;
+  }
+  .fallback-note{font-size:9.5px;color:var(--text-faint);margin-top:4px;font-style:italic;}
+
+  .sim-row{display:flex;gap:6px;margin-top:9px;}
+  .sim-btn{
+    flex:1;background:transparent;border:1px dashed var(--border);color:var(--text-faint);
+    border-radius:6px;padding:6px 6px;font-size:9.5px;cursor:pointer;letter-spacing:.01em;
+  }
+  .sim-btn.active{border-color:var(--accent1);color:var(--accent1);}
+
+  main{padding:0 0 22px;}
+  section{padding:16px 14px 6px;}
+  .section-label{
+    font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);
+    font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px;
+  }
+  .section-label .n{font-family:ui-monospace,monospace;color:var(--text-dim);}
+  .section-label::after{content:"";flex:1;height:1px;background:var(--border);}
+  .section-note{font-size:9.5px;color:var(--text-faint);margin:-4px 0 9px;font-style:italic;}
+
+  /* ===== Summary chips ===== */
+  .summary-row{display:flex;gap:6px;padding:0 14px 4px;}
+  .sum-chip{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 9px;}
+  .sum-chip .num{font-family:ui-monospace,monospace;font-size:19px;font-weight:700;line-height:1;}
+  .sum-chip .lbl{font-size:9.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-top:3px;}
+  .sum-chip.pass .num{color:var(--pass);}
+  .sum-chip.fail .num{color:var(--fail);}
+  .sum-chip.na .num{color:var(--na);}
+  .summary-caption{font-size:9.5px;color:var(--text-faint);padding:0 14px 10px;font-style:italic;}
+
+  /* ===== 1. Diagnostic checks: horizontal strip ===== */
+  .strip-wrap{margin:0 -14px;padding:0 14px;display:flex;align-items:stretch;gap:4px;}
+  .strip{
+    display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;
+    padding:2px 2px 10px;scroll-behavior:smooth;
+    scrollbar-width:thin;touch-action:pan-y;cursor:grab;
+  }
+  .strip.dragging{cursor:grabbing;scroll-snap-type:none;}
+  .strip::-webkit-scrollbar{height:4px;}
+  .strip::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+  .strip-nav{
+    flex:0 0 22px;align-self:center;height:40px;background:var(--bg-card-raised);
+    border:1px solid var(--border);border-radius:7px;color:var(--text-dim);font-size:15px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .strip-nav:active{transform:scale(.95);}
+  .strip-dots{display:flex;gap:4px;justify-content:center;margin-top:6px;}
+  .strip-dots .d{width:5px;height:5px;border-radius:50%;background:var(--border);}
+  .strip-dots .d.on{background:var(--accent1);}
+
+  .check-card{
+    flex:0 0 272px;scroll-snap-align:start;
+    background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:11px 12px 12px;position:relative;overflow:hidden;user-select:none;
+  }
+  .check-card.status-fail{border-left:2.5px solid var(--fail);}
+  .check-card.status-pass{border-left:2.5px solid var(--pass);}
+  .check-card.status-na{border-left:2.5px solid var(--na);border-left-style:dashed;}
+  .check-card.status-route{border-left:2.5px solid var(--route);border-left-style:dotted;}
+
+  .check-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;}
+  .check-name{font-size:11.5px;font-weight:700;letter-spacing:-0.005em;}
+  .status-pill{
+    font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    padding:2px 6px;border-radius:999px;white-space:nowrap;flex:0 0 auto;
+  }
+  .status-pill.pass{color:var(--pass);background:rgba(52,211,153,.1);}
+  .status-pill.fail{color:var(--fail);background:rgba(245,158,11,.1);}
+  .status-pill.na{color:var(--na);background:rgba(107,114,128,.12);}
+  .status-pill.route{color:var(--route);background:rgba(139,92,246,.12);}
+
+  .check-clause{font-size:9.5px;color:var(--text-faint);font-family:ui-monospace,monospace;margin-bottom:7px;}
+  .check-basis{font-size:10.5px;color:var(--text-dim);margin-bottom:8px;}
+  .check-rx{
+    font-size:10.5px;color:var(--text);background:var(--bg-card-raised);
+    border-radius:6px;padding:7px 8px;margin-bottom:6px;border-left:2px solid transparent;
+  }
+  .check-card.status-fail .check-rx{border-left-color:var(--fail);}
+  .check-card.status-na .check-rx{border-left-color:var(--na);}
+  .check-card.status-route .check-rx{border-left-color:var(--route);}
+  .check-disclaimer{font-size:9px;color:var(--text-faint);font-style:italic;margin-bottom:8px;}
+
+  .llm-off{display:none;}
+  body.sim-llmoff .llm-on{display:none;}
+  body.sim-llmoff .llm-off{display:inline;}
+
+  /* evidence mini row inside card -> links to a specific slot */
+  .evid-mini{display:flex;align-items:center;gap:6px;font-size:9.5px;color:var(--text-faint);line-height:1.3;margin-top:3px;}
+  .evid-mini .cut{flex:0 0 auto;}
+  .evid-mini span.evid-text{flex:1;}
+  .evid-mini a{color:var(--accent1);text-decoration:none;border-bottom:1px dotted var(--accent1);}
+  .no-evid{font-size:9.5px;color:var(--text-faint);display:flex;align-items:center;gap:6px;}
+  .no-evid .ok-mark{color:var(--pass);font-size:10px;}
+
+  /* ===== 2. PayPal flags: declared-data snapshot ===== */
+  .flag-box{
+    background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px 12px 11px;
+  }
+  .flag-box-label{
+    font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text);
+    font-weight:800;margin-bottom:9px;display:flex;align-items:center;gap:6px;
+  }
+  .flag-box-label .cam{width:5px;height:5px;border-radius:50%;background:var(--grad);}
+  .flag-entry{background:var(--bg-card-raised);border-radius:8px;padding:9px 10px;}
+  .flag-entry .fe-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .flag-entry .fe-capture{font-size:9.5px;font-family:ui-monospace,monospace;color:var(--text-faint);}
+  .flag-entry .fe-status{font-size:12px;font-weight:700;}
+  .flag-entry .fe-status-sub{font-size:9px;color:var(--text-faint);font-weight:400;display:block;margin-top:1px;font-style:italic;}
+  .chip-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;}
+  .cat-chip{
+    font-size:9.5px;font-family:ui-monospace,monospace;background:rgba(245,158,11,.1);
+    color:var(--fail);padding:3px 7px;border-radius:999px;border:1px solid rgba(245,158,11,.25);
+  }
+  .flags-meta{font-size:9.5px;color:var(--text-faint);margin-top:8px;font-style:italic;}
+
+  /* ===== 3. Semantic layer ===== */
+  .sem-ran{} .sem-notrun{display:none;}
+  body.sim-llmoff .sem-ran{display:none;}
+  body.sim-llmoff .sem-notrun{display:block;}
+  .notrun-card{
+    background:var(--bg-card);border:1px dashed var(--border);border-radius:var(--radius);
+    padding:11px 12px;margin-bottom:9px;color:var(--text-faint);
+  }
+  .notrun-card .nr-title{font-size:11px;font-weight:700;color:var(--text-dim);margin-bottom:4px;}
+  .notrun-card .nr-body{font-size:10.5px;}
+  .notrun-card .nr-body b{color:var(--text-dim);}
+
+  .warn-card{
+    background:var(--warn-bg);border:1px solid rgba(217,119,6,.28);border-radius:var(--radius);
+    padding:10px 11px;margin-bottom:11px;
+  }
+  .warn-card .w-top{display:flex;gap:7px;align-items:flex-start;margin-bottom:4px;}
+  .warn-card .w-icon{color:var(--warn);font-size:12px;flex:0 0 auto;line-height:1.3;}
+  .warn-card .w-title{font-size:11px;font-weight:700;color:var(--warn);}
+  .warn-card .w-body{font-size:10.5px;color:var(--text-dim);}
+  .warn-card .w-meta{display:flex;gap:10px;margin-top:6px;font-size:9.5px;color:var(--text-faint);font-family:ui-monospace,monospace;flex-wrap:wrap;}
+  .warn-card .w-quote{
+    font-size:10px;color:var(--text-faint);font-style:italic;margin-top:6px;
+    border-left:2px solid rgba(217,119,6,.35);padding-left:7px;
+  }
+
+  .pattern-block{margin-bottom:9px;}
+  .pattern-block-title{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
+  .pattern-block.matched .pattern-block-title{color:var(--warn);}
+  .pattern-block.unassessable .pattern-block-title{color:var(--na);}
+  .pattern-item{
+    background:var(--bg-card);border:1px solid var(--border);border-radius:8px;
+    padding:7px 9px;margin-bottom:6px;
+  }
+  .pattern-item .p-name{font-size:10.5px;font-weight:700;font-family:ui-monospace,monospace;margin-bottom:2px;}
+  .pattern-block.matched .pattern-item{border-left:2px solid var(--warn);}
+  .pattern-block.unassessable .pattern-item{border-left:2px solid var(--na);}
+  .pattern-item .p-basis{font-size:9.5px;color:var(--text-dim);}
+  .pattern-note{font-size:9.5px;color:var(--text-faint);font-style:italic;margin-top:-2px;margin-bottom:9px;}
+
+  /* ===== 4. Evidence slots (THE PEAK) ===== */
+  #slots .slot-deck{display:flex;flex-direction:column;gap:10px;}
+  .slot-card{
+    background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:11px 12px;display:flex;gap:11px;align-items:center;position:relative;cursor:pointer;
+    transition:border-color .3s var(--ease-expo),background .3s var(--ease-expo);
+  }
+  .slot-card:hover,.slot-card:focus-visible{border-color:var(--accent1);outline:none;}
+  .slot-card.verified{border-color:rgba(139,92,246,.4);}
+  .slot-card .pouch{
+    flex:0 0 52px;height:52px;border-radius:9px;position:relative;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .slot-card.filled .pouch{background:var(--bg-card-raised);border:1px solid var(--border);}
+  .slot-card.fillable .pouch{background:rgba(59,130,246,.06);border:1.5px solid var(--border);}
+  .slot-card.unfillable .pouch{background:var(--bg-card-raised);border:1px solid var(--border);opacity:.6;}
+  .slot-card.unfillable::after{
+    content:"";position:absolute;left:12px;top:50%;width:46px;height:1.5px;background:var(--text-faint);
+    transform:translateY(-50%) rotate(-32deg);transform-origin:left center;opacity:.6;
+  }
+  @keyframes pulseStroke{0%,100%{stroke-opacity:.4;}50%{stroke-opacity:1;}}
+
+  /* ===== 形の辞書(shape dictionary): 1つのSVG定義を state class で見た目だけ変える ===== */
+  /* fillable = 穴(輪郭のみ・中身なし) / filled = 実体(塗り) / unfillable = 埋められない(塗り+斜線) */
+  .cut svg{display:block;width:100%;height:100%;}
+  .cut-sm{width:16px;height:16px;}
+  .cut-lg{width:30px;height:30px;}
+  .cut .shp{vector-effect:non-scaling-stroke;}
+  .cut.state-filled .shp{fill:var(--accent2);stroke:none;}
+  .cut.state-fillable .shp{fill:none;stroke:var(--accent1);stroke-width:1.8;stroke-dasharray:3 2;animation:pulseStroke 1.8s ease-in-out infinite;}
+  .cut.state-unfillable .shp{fill:var(--text-faint);stroke:none;opacity:.55;}
+
+  .slot-info{flex:1;min-width:0;}
+  .slot-info .si-top{display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap;}
+  .slot-info .si-name{font-size:11px;font-weight:700;font-family:ui-monospace,monospace;letter-spacing:-0.01em;}
+  .slot-state-pill{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:1.5px 5px;border-radius:999px;}
+  .slot-card.filled .slot-state-pill{color:#C4B5FD;background:rgba(139,92,246,.12);}
+  .slot-card.fillable .slot-state-pill{color:var(--accent1);background:rgba(59,130,246,.12);}
+  .slot-card.unfillable .slot-state-pill{color:var(--text-faint);background:rgba(107,114,128,.1);}
+  .slot-verified-pill{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:1.5px 5px;border-radius:999px;color:#C4B5FD;background:rgba(139,92,246,.14);border:1px solid rgba(139,92,246,.3);}
+  .slot-info .si-desc{font-size:10.5px;color:var(--text-dim);}
+
+  .slot-reveal{
+    font-size:9.5px;color:var(--text-faint);margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);
+    opacity:0;max-height:0;overflow:hidden;transition:opacity .3s var(--ease-expo),transform .3s var(--ease-expo);
+    transform:translateY(-4px);
+  }
+  .slot-card[aria-expanded="true"] .slot-reveal{opacity:1;max-height:80px;transform:translateY(0);}
+  .slot-reveal b{color:var(--text-dim);}
+  .slot-reveal .match-tag{
+    display:inline-block;margin-top:4px;font-size:9.5px;font-weight:700;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .peak-hint{
+    font-size:9.5px;color:var(--text-faint);text-align:center;margin-top:8px;font-style:italic;
+  }
+
+  /* ===== 5. Corrections / tracking registration ===== */
+  .action-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:11px 12px;}
+  .action-card .a-title{font-size:11.5px;font-weight:700;margin-bottom:3px;}
+  .action-card .a-sub{font-size:10.5px;color:var(--text-dim);margin-bottom:9px;}
+  .form-row{display:flex;gap:6px;margin-bottom:7px;}
+  .form-row select,.form-row input{
+    flex:1;background:var(--bg-card-raised);border:1px solid var(--border);color:var(--text);
+    border-radius:6px;padding:8px;font-size:11px;font-family:ui-monospace,monospace;min-height:34px;
+  }
+  #otherCarrierRow{display:none;margin-bottom:7px;}
+  .btn-primary{
+    width:100%;padding:10px;border:none;border-radius:7px;background:var(--grad);
+    color:#fff;font-size:11.5px;font-weight:700;cursor:pointer;margin-top:2px;
+    transition:transform .15s;min-height:38px;
+  }
+  .btn-primary:active{transform:scale(.98);}
+  .btn-primary.secondary{background:var(--bg-card-raised);color:var(--text);border:1px solid var(--border);}
+  .confirm-row{
+    display:none;flex-direction:column;gap:7px;margin-top:9px;padding-top:9px;border-top:1px dashed var(--border);
+  }
+  .confirm-row .c-txt{font-size:10.5px;color:var(--text-dim);}
+  .confirm-recap{
+    background:var(--bg-card-raised);border-radius:6px;padding:7px 8px;font-size:10.5px;
+    font-family:ui-monospace,monospace;color:var(--text-dim);
+  }
+  .btn-confirm-send{width:auto;align-self:flex-start;padding:9px 14px;margin:0;min-height:38px;}
+  .result-row{
+    display:none;margin-top:9px;padding-top:9px;border-top:1px dashed var(--border);
+    font-size:10.5px;color:var(--text-dim);
+  }
+  .result-row .r-ok{color:var(--pass);font-weight:700;}
+  .action-disclaimer{font-size:9px;color:var(--text-faint);font-style:italic;margin-top:8px;}
+
+  /* ===== 6. Before/After ===== */
+  .ba-wrap{display:flex;gap:8px;}
+  .ba-col{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:9px;padding:9px 10px;}
+  .ba-col .ba-label{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);margin-bottom:7px;font-weight:700;}
+  .ba-row{display:flex;align-items:center;gap:6px;font-size:9.5px;padding:3px 0;}
+  .ba-dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto;}
+  .ba-row.fail .ba-dot{background:var(--fail);}
+  .ba-row.pass .ba-dot{background:var(--pass);}
+  .ba-row span{color:var(--text-dim);}
+  .ba-arrow{display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:14px;width:18px;}
+  .ba-note{font-size:9.5px;color:var(--text-faint);font-style:italic;margin-top:7px;}
+
+  footer{padding:14px 14px 20px;text-align:center;}
+  footer .f-note{font-size:9.5px;color:var(--text-faint);}
+</style>
+</head>
+<body>
+
+<!-- 形の辞書: SVGシンボル定義を一箇所に集約(タグ/封筒/署名/印章の4形のみ・流用禁止) -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="shp-tag" viewBox="0 0 24 24"><polygon class="shp" points="2,12 9,2 22,2 22,9 15,22 2,22"/></symbol>
+    <symbol id="shp-envelope" viewBox="0 0 24 24"><polygon class="shp" points="2,2 22,2 22,22 2,22 2,9 12,15 22,9"/></symbol>
+    <symbol id="shp-signature" viewBox="0 0 24 24"><path class="shp" d="M2 18 L5 14.4 L8.6 20.6 L12 12 L15 17.6 L18.3 13 L21 15.8 L21 22 L2 22 Z"/></symbol>
+    <symbol id="shp-seal" viewBox="0 0 24 24"><polygon class="shp" points="7.5,2 16.5,2 22,7.5 22,16.5 16.5,22 7.5,22 2,16.5 2,7.5"/></symbol>
+  </defs>
+</svg>
+
+<header>
+  <div class="brand">
+    <span class="dot"></span>
+    <span class="name">Preflight for PayPal</span>
+    <span class="sub">v3</span>
+  </div>
+  <div class="id-row">
+    <input class="mono" type="text" value="4EC24563F7235632E" placeholder="capture_id (manual entry)">
+    <button class="btn-load">Load</button>
+  </div>
+  <div class="id-meta">
+    <span>order_id&nbsp;<b>5TY123456A</b></span>
+    <span>backend&nbsp;<b class="ok" id="backendState">online</b></span>
+    <span>LLM&nbsp;<b class="ok" id="llmState">available</b></span>
+  </div>
+  <div class="fallback-row">
+    <div class="fb-label">order_id (manual fallback)</div>
+    <input type="text" class="mono" placeholder="used only if capture→order resolution fails">
+    <div class="fallback-note">shown because capture_id → order_id resolution is best-effort, not guaranteed</div>
+  </div>
+  <div class="sim-row">
+    <button class="sim-btn" id="toggleLlm" type="button">simulate: LLM unavailable</button>
+    <button class="sim-btn" id="toggleBackend" type="button">simulate: backend offline</button>
+  </div>
+</header>
+
+<main>
+
+  <div class="summary-row">
+    <div class="sum-chip pass"><div class="num mono">3</div><div class="lbl">pass</div></div>
+    <div class="sum-chip fail"><div class="num mono">2</div><div class="lbl">fail</div></div>
+    <div class="sum-chip na"><div class="num mono">1</div><div class="lbl">n/a</div></div>
+  </div>
+  <div class="summary-caption">+1 routing check below (not scored pass/fail/n_a — it only directs to another row)</div>
+
+  <!-- 1: Diagnostic checks — horizontal strip (wheel + drag + nav buttons) -->
+  <section>
+    <div class="section-label"><span class="n">01</span> Diagnostic checks</div>
+    <div class="strip-wrap">
+      <button class="strip-nav" id="stripPrev" type="button" aria-label="previous check">&#8249;</button>
+      <div class="strip" id="strip" tabindex="0">
+
+        <div class="check-card status-fail">
+          <div class="check-top">
+            <div class="check-name">SHIP_TO_<br>TRANSACTION_ADDRESS</div>
+            <span class="status-pill fail">fail</span>
+          </div>
+          <div class="check-clause">US SP terms §4.1(a)</div>
+          <div class="check-basis">shipping.address not present on this transaction (purchase_units[].shipping absent)</div>
+          <div class="check-rx">Do not ship — obtain the buyer's confirmed address via a new transaction.</div>
+          <div class="check-disclaimer">declared-data read · not legal advice</div>
+          <div class="evid-mini"><span class="cut cut-sm shape-envelope state-fillable"><svg viewBox="0 0 24 24"><use href="#shp-envelope"/></svg></span><span class="evid-text">expected_evidence: <a href="#slot-proof">PROOF_OF_FULFILLMENT</a></span></div>
+        </div>
+
+        <div class="check-card status-fail">
+          <div class="check-top">
+            <div class="check-name">TRACKING_<br>REQUIRED</div>
+            <span class="status-pill fail">fail</span>
+          </div>
+          <div class="check-clause">US SP terms §4.2</div>
+          <div class="check-basis">GET /v1/shipping/trackers?transaction_id= returned no tracking number for this capture</div>
+          <div class="check-rx">Add tracking — see §05 Register tracking below.</div>
+          <div class="check-disclaimer">declared-data read · not legal advice</div>
+          <div class="evid-mini"><span class="cut cut-sm shape-tag state-fillable"><svg viewBox="0 0 24 24"><use href="#shp-tag"/></svg></span><span class="evid-text">expected_evidence: <a href="#slot-tracking">TRACKING_NUMBER</a></span></div>
+        </div>
+
+        <div class="check-card status-route">
+          <div class="check-top">
+            <div class="check-name">PHYSICAL_GOODS_<br>DECLARED</div>
+            <span class="status-pill route">routing</span>
+          </div>
+          <div class="check-clause">items[].category (declared)</div>
+          <div class="check-basis">category = PHYSICAL_GOODS. Not itself scored — routes to the check below when the semantic layer disagrees.</div>
+          <div class="check-rx">No standalone action. See INTANGIBLE_ADDITIONAL_REQS →</div>
+          <div class="check-disclaimer">routing row · never fails on its own</div>
+          <div class="no-evid"><span class="ok-mark">→</span><span>feeds INTANGIBLE_ADDITIONAL_REQS</span></div>
+        </div>
+
+        <div class="check-card status-na">
+          <div class="check-top">
+            <div class="check-name">INTANGIBLE_<br>ADDITIONAL_REQS</div>
+            <span class="status-pill na">not_assessable</span>
+          </div>
+          <div class="check-clause">US Intangible Goods Add'l Reqs</div>
+          <div class="check-basis">
+            <span class="llm-on">Semantic layer flagged a possible digital/physical mismatch — see §03.</span>
+            <span class="llm-off">Semantic layer unavailable right now — this check stays not_assessable per policy until it can run.</span>
+          </div>
+          <div class="check-rx">Keep fulfillment logs / proof of service delivery per US Intangible Goods Additional Requirements.</div>
+          <div class="check-disclaimer"><span class="llm-on">declared-data + LLM read</span><span class="llm-off">declared-data read (LLM unavailable)</span> · not legal advice</div>
+          <div class="evid-mini"><span class="cut cut-sm shape-signature state-unfillable"><svg viewBox="0 0 24 24"><use href="#shp-signature"/></svg></span><span class="evid-text">expected_evidence: <a href="#slot-sig">SIGNATURE_OR_LOG</a></span></div>
+        </div>
+
+        <div class="check-card status-pass">
+          <div class="check-top">
+            <div class="check-name">HIGH_VALUE_<br>SIGNATURE</div>
+            <span class="status-pill pass">pass</span>
+          </div>
+          <div class="check-clause">US SP terms §4.3 ($750+)</div>
+          <div class="check-basis">order amount $214.00 — below the $750 USD signature-confirmation threshold</div>
+          <div class="check-rx">No action required.</div>
+          <div class="check-disclaimer">declared-data read · not legal advice</div>
+          <div class="no-evid"><span class="ok-mark">✓</span><span>no evidence required</span></div>
+        </div>
+
+        <div class="check-card status-pass">
+          <div class="check-top">
+            <div class="check-name">SHIP_WITHIN_<br>DAYS</div>
+            <span class="status-pill pass">pass</span>
+          </div>
+          <div class="check-clause">US SP terms §4.4</div>
+          <div class="check-basis">3 of 30 days elapsed since order.create_time</div>
+          <div class="check-rx">No action required.</div>
+          <div class="check-disclaimer">declared-data read · not legal advice</div>
+          <div class="no-evid"><span class="ok-mark">✓</span><span>no evidence required</span></div>
+        </div>
+
+        <div class="check-card status-pass">
+          <div class="check-top">
+            <div class="check-name">EXCLUDED_<br>CATEGORY</div>
+            <span class="status-pill pass">pass</span>
+          </div>
+          <div class="check-clause">US SP terms Schedule 2</div>
+          <div class="check-basis">items[].name/description not matched against policy.py exclusion list</div>
+          <div class="check-rx">No action required.</div>
+          <div class="check-disclaimer">declared-data read · not legal advice</div>
+          <div class="no-evid"><span class="ok-mark">✓</span><span>no evidence required</span></div>
+        </div>
+
+      </div>
+      <button class="strip-nav" id="stripNext" type="button" aria-label="next check">&#8250;</button>
+    </div>
+    <div class="strip-dots" id="stripDots"></div>
+  </section>
+
+  <!-- 2: PayPal flags -->
+  <section>
+    <div class="section-label"><span class="n">02</span> PayPal flags</div>
+    <div class="flag-box">
+      <div class="flag-box-label"><span class="cam"></span> declared-data snapshot</div>
+      <div class="flag-entry">
+        <div class="fe-top">
+          <span class="fe-capture">capture_id 4EC2…632E</span>
+        </div>
+        <div class="fe-status">ELIGIBLE<span class="fe-status-sub">declared status — may be eligible, not a final decision</span></div>
+        <div class="chip-row">
+          <span class="cat-chip">ITEM_NOT_RECEIVED</span>
+          <span class="cat-chip">UNAUTHORIZED_TRANSACTION</span>
+        </div>
+      </div>
+      <div class="flags-meta">flags[] — showing 1 of 1 captures for this order</div>
+    </div>
+  </section>
+
+  <!-- 3: semantic layer -->
+  <section>
+    <div class="section-label"><span class="n">03</span> Semantic layer</div>
+
+    <div class="sem-ran">
+      <div class="warn-card">
+        <div class="w-top">
+          <span class="w-icon">&#9650;</span>
+          <span class="w-title">Declared category mismatch</span>
+        </div>
+        <div class="w-body">Item description reads as digital, but the order is flagged PHYSICAL_GOODS.</div>
+        <div class="w-meta">
+          <span>category: <b class="mono">DIGITAL</b></span>
+          <span>confidence: <b class="mono">0.90</b></span>
+          <span>mismatch: <b class="mono">DIGITAL_DECLARED_AS_PHYSICAL</b></span>
+        </div>
+        <div class="w-quote">"...instant digital download, delivered via email link..."</div>
+      </div>
+    </div>
+    <div class="notrun-card sem-notrun">
+      <div class="nr-title">Semantic layer not run</div>
+      <div class="nr-body">meaning.ran = <b>false</b> — no LLM key available or the call failed. INTANGIBLE_ADDITIONAL_REQS stays <b>not_assessable</b> rather than being silently dropped.</div>
+    </div>
+
+    <div class="pattern-block matched">
+      <div class="pattern-block-title">&#9650; fraud_warnings (table-driven, API-visible match)</div>
+      <div class="pattern-item">
+        <div class="p-name">NO_ADDRESS_SHIP_RISK</div>
+        <div class="p-basis">signal_basis: shipping address absent on this capture (purchase_units[].shipping) — treated as an elevated-risk signal regardless of order value</div>
+      </div>
+      <div class="pattern-item">
+        <div class="p-name">DIGITAL_ITEM_PHYSICAL_CLAIM</div>
+        <div class="p-basis">signal_basis: item description indicates digital delivery while category is declared PHYSICAL_GOODS (semantic mismatch observed on this capture)</div>
+      </div>
+    </div>
+    <div class="pattern-block unassessable">
+      <div class="pattern-block-title">&#9679; unassessable_patterns (not evaluable from this API)</div>
+      <div class="pattern-item">
+        <div class="p-name">BUYER_ACCOUNT_AGE_RISK</div>
+        <div class="p-basis">reason: buyer account creation date is not exposed by Orders/Captures API</div>
+      </div>
+      <div class="pattern-item">
+        <div class="p-name">MESSAGE_THREAD_TONE_MISMATCH</div>
+        <div class="p-basis">reason: buyer–seller message content is not exposed by Orders API</div>
+      </div>
+    </div>
+    <div class="pattern-note">fraud_warnings / unassessable_patterns are table-driven — returned even when meaning.ran = false.</div>
+  </section>
+
+  <!-- 4: evidence slots — THE PEAK -->
+  <section id="slots">
+    <div class="section-label"><span class="n">04</span> Evidence slots</div>
+    <div class="slot-deck">
+
+      <div class="slot-card filled" id="slot-capture" tabindex="0" role="button" aria-expanded="false">
+        <div class="pouch"><span class="cut cut-lg shape-seal state-filled"><svg viewBox="0 0 24 24"><use href="#shp-seal"/></svg></span></div>
+        <div class="slot-info">
+          <div class="si-top"><span class="si-name">CAPTURE_RECORD</span><span class="slot-state-pill">filled</span></div>
+          <div class="si-desc">This capture's own order data — present as soon as the order exists.</div>
+          <div class="slot-reveal">Maps to dispute evidence category: <b>order record fields</b> (used as context alongside stronger evidence, not standalone proof).</div>
+        </div>
+      </div>
+
+      <div class="slot-card fillable" id="slot-tracking" tabindex="0" role="button" aria-expanded="false">
+        <div class="pouch"><span class="cut cut-lg shape-tag state-fillable"><svg viewBox="0 0 24 24"><use href="#shp-tag"/></svg></span></div>
+        <div class="slot-info">
+          <div class="si-top"><span class="si-name">TRACKING_NUMBER</span><span class="slot-state-pill">fillable</span></div>
+          <div class="si-desc">Empty — this is the slot TRACKING_REQUIRED (§01) is waiting on.</div>
+          <div class="slot-reveal">Maps to dispute evidence category: <b>proof of shipment (carrier + tracking #)</b>.<br><span class="match-tag">§05 below fills this slot</span></div>
+        </div>
+      </div>
+
+      <div class="slot-card fillable verified" id="slot-proof" tabindex="0" role="button" aria-expanded="false">
+        <div class="pouch"><span class="cut cut-lg shape-envelope state-fillable"><svg viewBox="0 0 24 24"><use href="#shp-envelope"/></svg></span></div>
+        <div class="slot-info">
+          <div class="si-top"><span class="si-name">PROOF_OF_FULFILLMENT</span><span class="slot-state-pill">fillable</span><span class="slot-verified-pill">seen in a real case</span></div>
+          <div class="si-desc">Empty on this order — but this evidence_type is one SHIP_TO_TRANSACTION_ADDRESS (§01) is waiting on.</div>
+          <div class="slot-reveal">Maps to dispute evidence category: <b>proof of fulfillment</b>.<br><span class="match-tag">observed fact: in sandbox dispute PP-R-XGB-10190971, evidence_type "PROOF_OF_FULFILLMENT" appears twice in evidences[] (submitted by seller) — this is a real recorded category, not a guess</span></div>
+        </div>
+      </div>
+
+      <div class="slot-card unfillable" id="slot-sig" tabindex="0" role="button" aria-expanded="false">
+        <div class="pouch"><span class="cut cut-lg shape-signature state-unfillable"><svg viewBox="0 0 24 24"><use href="#shp-signature"/></svg></span></div>
+        <div class="slot-info">
+          <div class="si-top"><span class="si-name">SIGNATURE_OR_LOG</span><span class="slot-state-pill">unfillable</span></div>
+          <div class="si-desc">This order's declared category routes to the Intangible Goods track, where a signed physical receipt isn't the applicable evidence type.</div>
+          <div class="slot-reveal">Maps to dispute evidence category: <b>fulfillment log / proof of service delivery</b> (a different document than a signature).<br><span class="match-tag">see INTANGIBLE_ADDITIONAL_REQS in §01</span></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="peak-hint">tap a slot — its shape maps to one dispute evidence category, always the same one</div>
+  </section>
+
+  <!-- 5: correction action -->
+  <section>
+    <div class="section-label"><span class="n">05</span> Fix: register tracking</div>
+    <div class="action-card">
+      <div class="a-title">Register tracking</div>
+      <div class="a-sub">Fills the TRACKING_NUMBER slot above. May update the TRACKING_REQUIRED check once PayPal confirms.</div>
+      <div class="form-row">
+        <select id="carrierSelect">
+          <option value="UPS">UPS</option><option value="USPS">USPS</option><option value="FEDEX">FEDEX</option>
+          <option value="DHL">DHL</option><option value="OTHER">OTHER</option>
+        </select>
+        <input type="text" id="trackingInput" class="mono" placeholder="tracking #">
+      </div>
+      <div class="form-row" id="otherCarrierRow">
+        <input type="text" id="carrierOther" class="mono" placeholder="carrier name (required for OTHER)">
+      </div>
+      <button class="btn-primary secondary" id="prepareBtn">Prepare registration</button>
+      <div class="confirm-row" id="confirmRow">
+        <span class="c-txt">Confirm before sending to PayPal:</span>
+        <div class="confirm-recap" id="confirmRecap">carrier: UPS · tracking: — · capture_id: 4EC2…632E</div>
+        <button class="btn-primary btn-confirm-send" id="confirmSendBtn">Confirm &amp; send</button>
+      </div>
+      <div class="result-row" id="resultRow">
+        <span class="r-ok">Submitted.</span> Read back from PayPal: carrier <b class="mono" id="resCarrier">—</b>, tracking <b class="mono" id="resTracking">—</b>, status <b class="mono">queued</b> — pending PayPal's own confirmation before TRACKING_REQUIRED can change.
+      </div>
+      <div class="action-disclaimer">declared-data submission · not legal advice</div>
+    </div>
+  </section>
+
+  <!-- 6: before/after -->
+  <section>
+    <div class="section-label"><span class="n">06</span> Before / after</div>
+    <div class="ba-wrap">
+      <div class="ba-col">
+        <div class="ba-label">before</div>
+        <div class="ba-row fail"><span class="ba-dot"></span><span>TRACKING_REQUIRED — fail</span></div>
+        <div class="ba-row fail"><span class="ba-dot"></span><span>SHIP_TO_TRANSACTION_ADDRESS — fail</span></div>
+      </div>
+      <div class="ba-arrow">&#8594;</div>
+      <div class="ba-col">
+        <div class="ba-label">after</div>
+        <div class="ba-row pass"><span class="ba-dot"></span><span>TRACKING_REQUIRED — pass</span></div>
+        <div class="ba-row fail"><span class="ba-dot"></span><span>SHIP_TO_TRANSACTION_ADDRESS — fail</span></div>
+      </div>
+    </div>
+    <div class="ba-note">"after" reflects the state once PayPal's own trackers read-back confirms registration (§05) — not immediately on submission.</div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="f-note">declared-data snapshot · not legal advice · US Seller Protection terms</div>
+</footer>
+
+<script>
+  // インラインonclick禁止(MV3 CSP) — addEventListenerで配線
+  document.querySelectorAll('.slot-card').forEach(function(card){
+    function toggle(){
+      var open = card.getAttribute('aria-expanded') === 'true';
+      card.setAttribute('aria-expanded', open ? 'false' : 'true');
+    }
+    card.addEventListener('click', toggle);
+    card.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+  });
+
+  var carrierSelect = document.getElementById('carrierSelect');
+  var otherRow = document.getElementById('otherCarrierRow');
+  carrierSelect.addEventListener('change', function(){
+    otherRow.style.display = (carrierSelect.value === 'OTHER') ? 'flex' : 'none';
+  });
+
+  var prepareBtn = document.getElementById('prepareBtn');
+  var confirmRow = document.getElementById('confirmRow');
+  var confirmRecap = document.getElementById('confirmRecap');
+  var trackingInput = document.getElementById('trackingInput');
+  var carrierOtherInput = document.getElementById('carrierOther');
+  prepareBtn.addEventListener('click', function(){
+    var carrier = carrierSelect.value === 'OTHER'
+      ? (carrierOtherInput.value || 'OTHER (unspecified)')
+      : carrierSelect.value;
+    var tracking = trackingInput.value || '(empty)';
+    confirmRecap.textContent = 'carrier: ' + carrier + ' · tracking: ' + tracking + ' · capture_id: 4EC2…632E';
+    confirmRow.style.display = 'flex';
+  });
+
+  var confirmSendBtn = document.getElementById('confirmSendBtn');
+  var resultRow = document.getElementById('resultRow');
+  confirmSendBtn.addEventListener('click', function(){
+    var carrier = carrierSelect.value === 'OTHER'
+      ? (carrierOtherInput.value || 'OTHER (unspecified)')
+      : carrierSelect.value;
+    document.getElementById('resCarrier').textContent = carrier;
+    document.getElementById('resTracking').textContent = trackingInput.value || '(empty)';
+    resultRow.style.display = 'block';
+  });
+
+  // シミュレーション・トグル(静的モックの代替状態を見せる)
+  var llmBtn = document.getElementById('toggleLlm');
+  var llmState = document.getElementById('llmState');
+  llmBtn.addEventListener('click', function(){
+    var off = document.body.classList.toggle('sim-llmoff');
+    llmBtn.classList.toggle('active', off);
+    llmState.textContent = off ? 'unavailable' : 'available';
+    llmState.classList.toggle('bad', off);
+    llmState.classList.toggle('ok', !off);
+  });
+
+  var backendBtn = document.getElementById('toggleBackend');
+  var backendState = document.getElementById('backendState');
+  var loadBtn = document.querySelector('.btn-load');
+  backendBtn.addEventListener('click', function(){
+    var off = backendBtn.classList.toggle('active');
+    backendState.textContent = off ? 'offline' : 'online';
+    backendState.classList.toggle('bad', off);
+    backendState.classList.toggle('ok', !off);
+    loadBtn.disabled = off;
+    loadBtn.style.opacity = off ? '.4' : '1';
+  });
+
+  // ===== P0-2: 横ストリップの実装(wheel変換 + drag + nav buttons) =====
+  var strip = document.getElementById('strip');
+  var cardW = 272 + 10; // flex-basis + gap
+
+  // 1) 縦ホイール → 横移動変換
+  strip.addEventListener('wheel', function(e){
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      strip.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
+
+  // 2) ドラッグ(トラックパッド非対応環境のフォールバック)
+  var isDown = false, startX = 0, startScroll = 0;
+  strip.addEventListener('pointerdown', function(e){
+    isDown = true; startX = e.clientX; startScroll = strip.scrollLeft;
+    strip.classList.add('dragging');
+    strip.setPointerCapture(e.pointerId);
+  });
+  strip.addEventListener('pointermove', function(e){
+    if (!isDown) return;
+    strip.scrollLeft = startScroll - (e.clientX - startX);
+  });
+  function endDrag(){ isDown = false; strip.classList.remove('dragging'); }
+  strip.addEventListener('pointerup', endDrag);
+  strip.addEventListener('pointercancel', endDrag);
+
+  // 3) 左右ナビボタン(キーボード・クリックでも全7枚に到達できる)
+  document.getElementById('stripPrev').addEventListener('click', function(){
+    strip.scrollBy({ left: -cardW, behavior: 'smooth' });
+  });
+  document.getElementById('stripNext').addEventListener('click', function(){
+    strip.scrollBy({ left: cardW, behavior: 'smooth' });
+  });
+  strip.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight') { strip.scrollBy({ left: cardW, behavior: 'smooth' }); }
+    if (e.key === 'ArrowLeft') { strip.scrollBy({ left: -cardW, behavior: 'smooth' }); }
+  });
+
+  // 進捗ドット(今どのカード付近にいるか)
+  var dotsWrap = document.getElementById('stripDots');
+  var cardCount = strip.children.length;
+  for (var i = 0; i < cardCount; i++) {
+    var d = document.createElement('span'); d.className = 'd'; dotsWrap.appendChild(d);
+  }
+  function updateDots(){
+    var idx = Math.round(strip.scrollLeft / cardW);
+    Array.prototype.forEach.call(dotsWrap.children, function(d, i){ d.classList.toggle('on', i === idx); });
+  }
+  strip.addEventListener('scroll', updateDots);
+  updateDots();
+</script>
+
+</body>
+</html>
