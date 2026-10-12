@@ -95,7 +95,7 @@ paypal-orders-api, paypal-shipping-trackers-api, paypal-disputes-api, chrome-ext
 ## Try it out / links
 
 - **Repository**: https://github.com/tatsuya7899/preflight-for-paypal (公開済み・MIT LICENSE・全工程記録込み)
-- **Demo video**: {YouTube URL — `demo/demo.webm`(119.96s)を人間がアップロード・`demo/subtitles_en.srt`を字幕として追加。字幕経由でルーブリック語彙が機械審査に届く}
+- **Demo video**: https://youtu.be/546-8y2ck9Q (限定公開・英語字幕=subtitles_en.srt実在確認済み・尺120s)
 - **Judge quickstart(必要ならAdditional info欄へ)**:
 
 ```text
