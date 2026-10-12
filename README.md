@@ -31,7 +31,7 @@ python3 -m backend.server --fixture
    | `4EC24563F7235632E` | physical goods with address (mostly compliant) |
    | `2B190886TP583404W` | physical goods, full shipping address on file |
    | `13E67607MS6117934` | digital goods declared |
-   | `76X32521BG861322V` | high-value order ($800, signature threshold) |
+   | `76X32521BG861322V` | high-value order ($800 — shows the signature-confirmation note, not a term violation) |
    | `8R484715XN459481P` | order with no items declared |
 
    (an **order_id** works too, e.g. `3UJ2460633408874H`)

@@ -21,7 +21,7 @@ for (const c of AFTER.checks) {
     c.basis = "tracker 1Z999AA10123456784 (UPS) found for this capture";
   }
 }
-AFTER.summary = { n_pass: 4, n_fail: 1, n_not_assessable: 2 };
+AFTER.summary = { n_pass: 3, n_fail: 1, n_not_assessable: 3 };
 AFTER.corrections = [];
 
 let results = [];
@@ -88,7 +88,7 @@ const t = (name, ok, extra = "") => { results.push([name, ok, extra]); };
 
   // 4. summary counts from verdict
   const chipNums = await page.locator(".chip .n").allInnerTexts();
-  t("summary 3/2/2", chipNums.join("/") === "3/2/2", chipNums.join("/"));
+  t("summary 2/2/3", chipNums.join("/") === "2/2/3", chipNums.join("/"));
 
   // 5. 7 cards rendered, fail card has rx, pass card has none
   t("7 check cards", (await page.locator(".card").count()) === 7);
@@ -139,7 +139,7 @@ const t = (name, ok, extra = "") => { results.push([name, ok, extra]); };
   const baText = (await page.locator("#baBefore").innerText()).split("").filter(c => c !== "​").join("");
   t("before shows old fail", baText.includes("TRACKING_REQUIRED"));
   const summary2 = await page.locator(".chip .n").allInnerTexts();
-  t("summary updated 4/1/2", summary2.join("/") === "4/1/2", summary2.join("/"));
+  t("summary updated 3/1/3", summary2.join("/") === "3/1/3", summary2.join("/"));
   // fix form hidden after corrections empty
   t("fix hidden when no corrections", !(await page.locator("#btnTrack").isVisible()));
 

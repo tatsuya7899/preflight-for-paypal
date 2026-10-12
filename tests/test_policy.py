@@ -58,7 +58,25 @@ class TestChecksTable(unittest.TestCase):
         self.assertEqual(row.get("fixed_status"), "not_assessable")
 
     def test_high_value_signature_threshold_750(self):
+        # Defensive-practice constant, NOT a current-US-terms requirement
+        # (audit S2, 2026-10-12 — see AUDIT-seller-protection-terms_20261012.md).
         self.assertEqual(policy.HIGH_VALUE_SIGNATURE_THRESHOLD_USD, 750)
+
+    def test_high_value_signature_row_is_fixed_not_assessable(self):
+        # The row must never report fail — the current US terms (ver. 2026-01-26)
+        # contain no signature-confirmation requirement.
+        row = policy.get_check("HIGH_VALUE_SIGNATURE")
+        self.assertEqual(row.get("fixed_status"), "not_assessable")
+
+    def test_each_clause_names_real_section_and_pinned_version(self):
+        # Audit S2: clauses must cite a named section of the pinned document —
+        # no fabricated "§N" numbering (the document has none).
+        for row in policy.CHECKS:
+            self.assertIn("ver. 2026-01-26", row["clause"], row["condition"])
+            self.assertNotIn("§", row["clause"], row["condition"])
+        for key, entry in policy.MISMATCH_TO_CHECK.items():
+            self.assertIn("ver. 2026-01-26", entry["clause"], key)
+            self.assertNotIn("§", entry["clause"], key)
 
     def test_each_condition_expected_evidence_nonempty(self):
         for row in policy.CHECKS:

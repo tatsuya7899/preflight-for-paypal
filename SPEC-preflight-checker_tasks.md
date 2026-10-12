@@ -35,7 +35,7 @@
 | # | タスク | 種別 | 委任先 | 依存 | 完了判定 |
 |---|---|---|---|---|---|
 | S1 | 審査員実行経路の整備: backendにfixtureモード起動手順をREADMEに明記(PayPal資格情報なしで動く検証経路)+セットアップ手順書(sandbox資格情報取得〜拡張sideload〜トークン貼付) | 安定型 | builder | #8 | Devpost要件「judges must be able to actually run a working build」を満たす手順がREADMEに存在 ✅**完了2026-10-12**: `--fixture`/PREFLIGHT_FIXTURE=1で起動・メモリtracker閉ループ動作・README英語手順(表6件)・fixtureテスト5件・独立レビュー指摘6件全反映 |
-| S2 | 規約条項照合監査: policy.pyの条項根拠を現行US版(文書日付ピン)で再確認・SHIP_WITHIN_DAYSのrequired/recommended文言・HIGH_VALUE_SIGNATUREのfail→warning判定を含む | 探索型 | builder+web確認 | #3 | 全条項に「根拠文書の版(日付)」が明記され文言が現行版と一致 |
+| S2 | 規約条項照合監査: policy.pyの条項根拠を現行US版(文書日付ピン)で再確認・SHIP_WITHIN_DAYSのrequired/recommended文言・HIGH_VALUE_SIGNATUREのfail→warning判定を含む | 探索型 | builder+web確認 | #3 | ✅**完了2026-10-12**: 現行US版(ver. 2026-01-26)と突合。発見3件——創作条項番号(§1(a)〜§2)を実在の節名へ書換・署名確認は現行US版に非存在のためfixed_status降格(fail不可能に)・除外キーワード再構成+語境界マッチ化。監査記録=`bd/AUDIT-seller-protection-terms_20261012.md`・98テスト全Green |
 | S3 | payment_source変動で旗が動くかのテスト(Gate 0残条件②・sandboxスクリプト) | 探索型 | builder | #4 | 変動有無が1行で記録される |
 | S4 | 紛争n=2再現(UNAUTHORIZED系・デモ録画前・実API) | 安定型 | builder | #4,#8 | UNAUTHORIZED案件でevidence要求まで再現 |
 | S5 | 3幕デモ台本+録画+README台本化+AI審査フィルター対策(REF-hackathon-ai-screening) | 安定型 | builder+監督 | #11,S1 | 提出物一式がDevpost要件・文言規律(裸対置禁止)を満たす |

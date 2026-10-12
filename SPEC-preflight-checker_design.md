@@ -50,7 +50,7 @@
   "summary": {"n_pass": 0, "n_fail": 0, "n_not_assessable": 0},
   "checks": [
     {"condition": "SHIP_TO_TRANSACTION_ADDRESS", "status": "pass|fail|not_assessable",
-     "basis": "shipping.address present", "clause": "US SP terms §...",
+     "basis": "shipping.address present", "clause": "US Seller Protection terms (ver. YYYY-MM-DD) — Basic Requirements: ...",
      "prescription": "...", "expected_evidence": ["PROOF_OF_FULFILLMENT"]}
   ],
   "meaning": {

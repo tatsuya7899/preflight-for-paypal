@@ -10,8 +10,25 @@ This module holds no behaviour beyond small lookup helpers — the decision logi
 that consumes this data lives in backend/rules.py and backend/meaning.py.
 """
 
-# US Seller Protection signature-confirmation threshold (paypal.com/us/legalhub +
-# seller-protection PDF, confirmed in design doc P2-3).
+# Policy source pinned by audit (S2, 2026-10-12):
+#   Document: PayPal's Seller Protection Program (US)
+#   URL:      https://www.paypal.com/us/legalhub/paypal/seller-protection
+#   Version:  "Last updated on January 26, 2026"
+# The document has NO numbered clauses — it uses named sections. Every
+# `clause` string below cites the real section name, not an invented "§N":
+#   "What's Eligible", "Basic Requirements", "Item Not Received Additional
+#   Requirement", "Intangible Goods Additional Requirements", "Establishing
+#   Proof of Shipment or Proof of Delivery", "Ineligible Items and
+#   Transactions".
+POLICY_DOC_NAME = "US Seller Protection Program terms"
+POLICY_DOC_VERSION = "2026-01-26"
+POLICY_DOC_URL = "https://www.paypal.com/us/legalhub/paypal/seller-protection"
+
+# Signature-confirmation threshold. The $750 requirement exists in OTHER
+# regions' terms (SEA/CEMEA) but is ABSENT from the current US document
+# (ver. 2026-01-26) — verified 2026-10-12 audit: the string "signature" does
+# not appear in the US terms at all. Retained as a defensive-practice
+# heuristic only; the HIGH_VALUE_SIGNATURE check must never report "fail".
 HIGH_VALUE_SIGNATURE_THRESHOLD_USD = 750
 
 # PayPal evidence types a seller may be asked to produce in a dispute, referenced
@@ -42,7 +59,7 @@ CHECKS = [
     {
         "condition": "SHIP_TO_TRANSACTION_ADDRESS",
         "input_path": "purchase_units[].shipping",
-        "clause": "US Seller Protection terms \u00a71(a) — Shipped to the address on the Transaction",
+        "clause": "US Seller Protection terms (ver. 2026-01-26) — Basic Requirements: ship to the shipping address on the Transaction Details page",
         "prescription": (
             "Do not ship — obtain the buyer's confirmed address via a new transaction"
         ),
@@ -56,7 +73,7 @@ CHECKS = [
     {
         "condition": "TRACKING_REQUIRED",
         "input_path": "GET /v1/shipping/trackers?transaction_id=",
-        "clause": "US Seller Protection terms \u00a71(b) — Proof of shipment or delivery",
+        "clause": "US Seller Protection terms (ver. 2026-01-26) — Basic Requirements: valid proof of shipment or delivery (verifiable tracking number)",
         "prescription": "Add tracking — button (REGISTER_TRACKING)",
         "expected_evidence": [
             EVIDENCE_PROOF_OF_FULFILLMENT,
@@ -66,7 +83,7 @@ CHECKS = [
     {
         "condition": "PHYSICAL_GOODS_DECLARED",
         "input_path": "items[].category",
-        "clause": "US Seller Protection terms \u00a71 — Eligible item types (Physical Goods)",
+        "clause": "US Seller Protection terms (ver. 2026-01-26) — Basic Requirements: item must be a physical, tangible good that can be shipped",
         "prescription": (
             "Item is not declared as physical goods — evaluate under the "
             "Intangible Goods Additional Requirements path instead"
@@ -78,7 +95,7 @@ CHECKS = [
     {
         "condition": "INTANGIBLE_ADDITIONAL_REQS",
         "input_path": "meaning.semantic.category",
-        "clause": "US Seller Protection terms — Intangible Goods Additional Requirements",
+        "clause": "US Seller Protection terms (ver. 2026-01-26) — Intangible Goods Additional Requirements",
         "prescription": (
             "Keep fulfillment logs/proof of service delivery per US Intangible "
             "Goods Additional Requirements"
@@ -92,15 +109,17 @@ CHECKS = [
         "fixed_status": "not_assessable",
     },
     {
-        # Clause basis pinned to the legalhub threshold table (750 USD).
-        # NOTE: PayPal PM help text states signature confirmation became
-        # "recommended, not mandatory" for transactions on/after 2026-01-26
-        # while the legalhub table still lists the threshold — version drift.
-        # Re-verify the current US version before submission (M2/M7 finding).
+        # AUDIT (S2, 2026-10-12): signature confirmation is NOT required by the
+        # current US terms — the string does not appear anywhere in the
+        # 2026-01-26 document. The $750 table survives only in other regions'
+        # terms (SEA/CEMEA). This row is therefore prescription-only
+        # (fixed_status), never "fail": flagging it as a violation would be a
+        # fabricated requirement.
         "condition": "HIGH_VALUE_SIGNATURE",
         "input_path": "purchase_units[].amount.value (>= $750 USD)",
-        "clause": "US Seller Protection terms \u00a71(c) — Signature Confirmation for high-value items (legalhub threshold table, 750 USD)",
-        "prescription": "Use signature confirmation",
+        "clause": "US Seller Protection terms (ver. 2026-01-26) — no signature-confirmation requirement present (defensive practice; $750 threshold exists only in non-US terms)",
+        "prescription": "Signature confirmation is a defensive practice for high-value orders — not required by current US Seller Protection terms",
+        "fixed_status": "not_assessable",
         "expected_evidence": [
             EVIDENCE_SIGNATURE_CONFIRMATION,
         ],
@@ -108,7 +127,7 @@ CHECKS = [
     {
         "condition": "SHIP_WITHIN_DAYS",
         "input_path": "order.create_time",
-        "clause": "US Seller Protection terms \u00a71(d) — Timely shipment window",
+        "clause": "US Seller Protection terms (ver. 2026-01-26) — Basic Requirements: ship within the listing-specified timeframe for pre-ordered/made-to-order goods; recommended within 7 days otherwise",
         # US terms: required only for pre-ordered / made-to-order goods (ship
         # within the timeframe specified in the listing); otherwise "it is
         # recommended" to ship within 7 days — not a hard requirement.
@@ -121,8 +140,10 @@ CHECKS = [
     {
         "condition": "EXCLUDED_CATEGORY",
         "input_path": "items[].name / items[].description",
-        "clause": "US Seller Protection terms \u00a72 — Excluded item categories",
-        "prescription": "Category excluded from Seller Protection",
+        "clause": "US Seller Protection terms (ver. 2026-01-26) — Ineligible Items and Transactions",
+        # Keyword match is a heuristic flag, not a definitive exclusion — the
+        # prescription says "verify" so the seller checks the actual list.
+        "prescription": "Item text matches a Seller-Protection-ineligible category — verify against Ineligible Items and Transactions",
         "unfixable_for_order": True,
         "expected_evidence": [
             EVIDENCE_CATEGORY_DOCUMENTATION,
@@ -145,11 +166,11 @@ def get_check(condition_name):
 MISMATCH_TO_CHECK = {
     "DIGITAL_DECLARED_AS_PHYSICAL": {
         "check": "INTANGIBLE_ADDITIONAL_REQS",
-        "clause": "US Seller Protection terms — Intangible Goods Additional Requirements",
+        "clause": "US Seller Protection terms (ver. 2026-01-26) — Intangible Goods Additional Requirements",
     },
     "MADE_TO_ORDER_DECLARED_AS_STOCK": {
         "check": "SHIP_WITHIN_DAYS",
-        "clause": "US Seller Protection terms \u00a71(d) — Timely shipment window",
+        "clause": "US Seller Protection terms (ver. 2026-01-26) — Basic Requirements: ship within the listing-specified timeframe for pre-ordered/made-to-order goods",
     },
 }
 
@@ -160,30 +181,77 @@ CARRIERS = ["UPS", "USPS", "FEDEX", "DHL", "OTHER"]
 # supply carrier_name_other.
 CARRIER_OTHER_REQUIRES_NAME = True
 
-# PayPal Seller Protection excluded-category keywords (policy.py static list,
-# per design doc "EXCLUDED_CATEGORY" row). Matched case-insensitively against
-# items[].name / items[].description.
+# PayPal Seller Protection ineligible-category keywords, aligned by audit
+# (S2, 2026-10-12) to the "Ineligible Items and Transactions" section of the
+# US terms ver. 2026-01-26. Matched case-insensitively at word boundaries
+# against items[].name / items[].description. Text and keywords are
+# separator-normalized (hyphens/whitespace -> single space) and a trailing
+# plural "s" is tolerated, so "gift-card", "NFTs", "motorcycles" all match —
+# a heuristic, documented in the check basis when it fires. Phrase-level
+# false positives remain possible by design (e.g. "boat shoes" still matches
+# "boat", "motorcycle helmet" matches "motorcycle"): the check is a flag for
+# the seller's own verification, not a definitive exclusion ruling — the
+# matched keyword is always shown in the basis.
+#
+# Audit removals:
+#   - "custom-made item"      : NOT ineligible — made-to-order only carries a
+#                               listing-timeframe shipment rule (eligible).
+#   - "ticket for an event"   : NOT ineligible — the only ticketing exclusion
+#                               is travel tickets under a narrow claim-timing
+#                               condition (UT claim >24h before travel date),
+#                               which item text cannot assess.
+#   - "travel ticket"         : same — conditionally excluded only.
+#   - "car"                   : substring matches "care"/"cargo"/"card" —
+#                               vehicle/motor vehicle/motorcycle cover it.
+#   - "land"                  : substring matches "Thailand"/"Iceland" etc.
+#   - "cash"                  : substring matches "cashmere".
+#   - "gold"                  : the exclusion covers gold-as-commodity, not
+#                               "gold necklace" (a normal physical good).
+#   - "property (real estate)": literal parens never match real text;
+#                               real-estate/residential property cover it.
+# Known limits: NFT exclusion is amount-gated (>=$10,000.01 always excluded;
+# <=$10,000.00 excluded except qualifying UT claims) — keyword flags the
+# category, the amount nuance is documented in the check basis/comment.
 EXCLUDED_CATEGORY_KEYWORDS = [
+    # Vehicles (light portable vehicles like bicycles/hoverboards are excepted
+    # in the terms — keyword-level nuance not assessable from item text)
     "vehicle",
     "motor vehicle",
-    "car",
     "motorcycle",
+    "recreational vehicle",
     "boat",
     "aircraft",
+    # Real estate / businesses / industrial machinery
     "real estate",
     "real-estate",
-    "land",
-    "property (real estate)",
-    "business",
+    "residential property",
+    # Ineligible item = the sale of a business itself; bare "business" would
+    # flag "business card holder" / "business casual" products.
+    "business for sale",
     "industrial equipment",
-    "custom-made item",
-    "item that violates paypal's acceptable use policy",
-    "cash",
+    "industrial machinery",
+    # Cash equivalents / stored value / financial products
     "cash equivalent",
     "gift card",
-    "travel ticket",
-    "ticket for an event",
+    "prepaid card",
+    "pre-paid card",
+    "stored value",
+    "investment",
+    # NFTs (excluded; <=$10k carve-out for qualifying UT claims — see comment)
+    "nft",
+    "non-fungible",
+    # Gambling (entry fee + prize activities)
+    "gambling",
+    "casino",
+    "lottery",
+    # Donations / crowdfunding
     "donation",
+    "crowdfunding",
+    # Bill payment services
+    "bill payment",
+    # PayPal Acceptable Use violations — short form so it actually fires;
+    # a literal "item that violates..." sentence never appears in listings.
+    "acceptable use policy",
 ]
 
 # Fraud pattern table: PayPal-documented Seller Protection fraud patterns mapped
@@ -206,8 +274,9 @@ FRAUD_PATTERNS = [
     {
         "name": "HIGH_VALUE_NO_SIGNATURE",
         "description": (
-            "High-value item shipped without signature confirmation, a pattern "
-            "PayPal documents as increasing Unauthorized Transaction exposure."
+            "High-value item shipped without signature confirmation — a "
+            "defensive practice (not a requirement under current US terms "
+            "ver. 2026-01-26; $750 is the non-US/historical threshold)."
         ),
         "api_assessable": True,
         "signal_basis": "amount.value >= $750 USD with no signature-confirmation tracker",

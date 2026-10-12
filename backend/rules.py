@@ -9,7 +9,30 @@ This module does not call any LLM. `semantic` (the meaning-layer LLM output) is
 received as a plain argument — evaluate() is pure and deterministic given its
 three inputs (order, trackers, semantic).
 """
+import re
+
 from backend import policy
+
+# Precompiled word-boundary patterns for the excluded-category keyword list.
+# Keywords and item text are both normalized (hyphens/whitespace runs -> single
+# space) so "gift-card"/"gift  card"/"gift card" all match; `s?` covers common
+# plurals ("motorcycles", "NFTs"). Word boundaries prevent partial-word false
+# positives ("nft" inside "nftables"); phrase-level ambiguity remains
+# (documented in policy.py).
+def _norm_sep(s):
+    return re.sub(r"[-\s]+", " ", s).strip()
+
+
+_EXCLUDED_PATTERNS = []
+_seen_kw = set()
+for _kw in policy.EXCLUDED_CATEGORY_KEYWORDS:
+    _nkw = _norm_sep(_kw)
+    if _nkw in _seen_kw:
+        continue  # hyphen/space variants normalize to the same pattern
+    _seen_kw.add(_nkw)
+    _EXCLUDED_PATTERNS.append(
+        (_kw, re.compile(r"\b" + re.escape(_nkw) + r"s?\b"))
+    )
 
 
 def _amount_value(purchase_unit):
@@ -128,6 +151,10 @@ def _check_intangible(purchase_unit, semantic):
 
 
 def _check_high_value_signature(purchase_unit):
+    """Signature confirmation is NOT a requirement under the current US terms
+    (ver. 2026-01-26 — the word does not appear in the document). The row is
+    prescription-only (fixed_status in policy.CHECKS): the amount signal is
+    still reported in the basis, but the status can never be fail."""
     amount = _amount_value(purchase_unit)
     threshold = policy.HIGH_VALUE_SIGNATURE_THRESHOLD_USD
     if amount is None:
@@ -139,14 +166,15 @@ def _check_high_value_signature(purchase_unit):
     if amount >= threshold:
         return _row(
             "HIGH_VALUE_SIGNATURE",
-            "fail",
-            f"amount.value={amount} USD >= ${threshold} threshold, "
-            "no signature-confirmation data present",
+            "not_assessable",
+            f"amount.value={amount} USD >= ${threshold} — signature confirmation "
+            "is a defensive practice, not required by current US terms",
         )
     return _row(
         "HIGH_VALUE_SIGNATURE",
-        "pass",
-        f"amount.value={amount} USD < ${threshold} threshold",
+        "not_assessable",
+        f"amount.value={amount} USD < ${threshold} — below defensive-practice "
+        "threshold; no signature requirement exists in current US terms",
     )
 
 
@@ -182,9 +210,11 @@ def _check_excluded_category(purchase_unit):
             "not_assessable",
             "no items[] array present on purchase_units[]",
         )
-    text = f"{item.get('name', '')} {item.get('description', '')}".lower()
-    for keyword in policy.EXCLUDED_CATEGORY_KEYWORDS:
-        if keyword in text:
+    text = _norm_sep(
+        f"{item.get('name', '')} {item.get('description', '')}".lower()
+    )
+    for keyword, pattern in _EXCLUDED_PATTERNS:
+        if pattern.search(text):
             return _row(
                 "EXCLUDED_CATEGORY",
                 "fail",
@@ -257,6 +287,15 @@ def evaluate(order, trackers, semantic=None):
         _check_ship_within_days(purchase_unit, semantic),
         _check_excluded_category(purchase_unit),
     ]
+
+    # Enforce fixed_status rows (prescription-only checks — currently
+    # INTANGIBLE_ADDITIONAL_REQS and HIGH_VALUE_SIGNATURE). The table field is
+    # a guarantee, not a comment: these rows must never report "fail"
+    # regardless of what their check function computed.
+    for c in checks:
+        fixed = policy.get_check(c["condition"]).get("fixed_status")
+        if fixed:
+            c["status"] = fixed
 
     summary = {
         "n_pass": sum(1 for c in checks if c["status"] == "pass"),

@@ -34,16 +34,16 @@
    }
   ],
   "summary": {
-   "n_pass": 3,
+   "n_pass": 2,
    "n_fail": 2,
-   "n_not_assessable": 2
+   "n_not_assessable": 3
   },
   "checks": [
    {
     "condition": "SHIP_TO_TRANSACTION_ADDRESS",
     "status": "fail",
     "basis": "purchase_units[].shipping is absent — no confirmed address on the transaction",
-    "clause": "US Seller Protection terms §1(a) — Shipped to the address on the Transaction",
+    "clause": "US Seller Protection terms (ver. 2026-01-26) — Basic Requirements: ship to the shipping address on the Transaction Details page",
     "prescription": "Do not ship — obtain the buyer's confirmed address via a new transaction",
     "expected_evidence": [
      "PROOF_OF_DELIVERY_ADDRESS",
@@ -55,7 +55,7 @@
     "condition": "TRACKING_REQUIRED",
     "status": "fail",
     "basis": "no trackers with a tracking_number found for this capture",
-    "clause": "US Seller Protection terms §1(b) — Proof of shipment or delivery",
+    "clause": "US Seller Protection terms (ver. 2026-01-26) — Basic Requirements: valid proof of shipment or delivery (verifiable tracking number)",
     "prescription": "Add tracking — button (REGISTER_TRACKING)",
     "expected_evidence": [
      "PROOF_OF_FULFILLMENT",
@@ -67,7 +67,7 @@
     "condition": "PHYSICAL_GOODS_DECLARED",
     "status": "pass",
     "basis": "items[0].category=PHYSICAL_GOODS",
-    "clause": "US Seller Protection terms §1 — Eligible item types (Physical Goods)",
+    "clause": "US Seller Protection terms (ver. 2026-01-26) — Basic Requirements: item must be a physical, tangible good that can be shipped",
     "prescription": "Item is not declared as physical goods — evaluate under the Intangible Goods Additional Requirements path instead",
     "expected_evidence": [
      "ITEM_DESCRIPTION_OR_LISTING"
@@ -78,7 +78,7 @@
     "condition": "INTANGIBLE_ADDITIONAL_REQS",
     "status": "not_assessable",
     "basis": "not evaluated: meaning layer did not run (meaning.ran=false)",
-    "clause": "US Seller Protection terms — Intangible Goods Additional Requirements",
+    "clause": "US Seller Protection terms (ver. 2026-01-26) — Intangible Goods Additional Requirements",
     "prescription": "Keep fulfillment logs/proof of service delivery per US Intangible Goods Additional Requirements",
     "expected_evidence": [
      "PROOF_OF_SERVICE_OR_DELIVERY_LOG"
@@ -87,10 +87,10 @@
    },
    {
     "condition": "HIGH_VALUE_SIGNATURE",
-    "status": "pass",
-    "basis": "amount.value=10.0 USD < $750 threshold",
-    "clause": "US Seller Protection terms §1(c) — Signature Confirmation for high-value items (legalhub threshold table, 750 USD)",
-    "prescription": "Use signature confirmation",
+    "status": "not_assessable",
+    "basis": "amount.value=10.0 USD < $750 — below defensive-practice threshold; no signature requirement exists in current US terms",
+    "clause": "US Seller Protection terms (ver. 2026-01-26) — no signature-confirmation requirement present (defensive practice; $750 threshold exists only in non-US terms)",
+    "prescription": "Signature confirmation is a defensive practice for high-value orders — not required by current US Seller Protection terms",
     "expected_evidence": [
      "SIGNATURE_CONFIRMATION"
     ],
@@ -100,7 +100,7 @@
     "condition": "SHIP_WITHIN_DAYS",
     "status": "not_assessable",
     "basis": "no shipment date recorded yet; cannot compute remaining shipment window",
-    "clause": "US Seller Protection terms §1(d) — Timely shipment window",
+    "clause": "US Seller Protection terms (ver. 2026-01-26) — Basic Requirements: ship within the listing-specified timeframe for pre-ordered/made-to-order goods; recommended within 7 days otherwise",
     "prescription": "Ship within your stated timeframe (required for pre-order/made-to-order); otherwise recommended within 7 days",
     "expected_evidence": [
      "SHIPMENT_DATE_RECORD",
@@ -112,8 +112,8 @@
     "condition": "EXCLUDED_CATEGORY",
     "status": "pass",
     "basis": "items[0].name/description matched no excluded-category keyword",
-    "clause": "US Seller Protection terms §2 — Excluded item categories",
-    "prescription": "Category excluded from Seller Protection",
+    "clause": "US Seller Protection terms (ver. 2026-01-26) — Ineligible Items and Transactions",
+    "prescription": "Item text matches a Seller-Protection-ineligible category — verify against Ineligible Items and Transactions",
     "expected_evidence": [
      "CATEGORY_DOCUMENTATION"
     ],
