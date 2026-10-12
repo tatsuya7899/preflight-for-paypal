@@ -161,9 +161,15 @@ async function waitHealth(tries = 60) {
 
     // Absolute-timeline helper — the narration track (demo/subtitles_en.srt)
     // runs 0:00–2:00, so screen action must hold each beat for its whole
-    // subtitle window rather than racing through it.
+    // subtitle window rather than racing through it. Lag is measured per
+    // beat: a slow locator must not silently shift acts out of their windows.
     const t0 = Date.now();
-    const until = async (sec) => {
+    const recStart = t0;
+    const beatLags = [];
+    const until = async (sec, label = `t=${sec}s`) => {
+      const lag = Date.now() - (t0 + sec * 1000);
+      beatLags.push({ label, lag });
+      if (lag > 3000) console.log(`[drift] beat ${label} ran ${(lag / 1000).toFixed(1)}s late`);
       const d = t0 + sec * 1000 - Date.now();
       if (d > 0) await wait(d);
     };
@@ -231,16 +237,26 @@ async function waitHealth(tries = 60) {
       problems.push(`AFTER row wrong: ${shot.baAfter.slice(0, 80)}`);
     if (shot.fixNote !== "registered — re-check complete")
       problems.push(`fixNote: ${shot.fixNote}`);
+    // Timing-drift check: if a beat ran >8s late the act slipped out of its
+    // subtitle window — that video is misaligned, not merely imperfect.
+    const worstLag = Math.max(...beatLags.map((b) => b.lag));
+    if (worstLag > 8000) {
+      const b = beatLags.reduce((m, x) => (x.lag > m.lag ? x : m));
+      problems.push(`timing drift: beat "${b.label}" was ${(b.lag / 1000).toFixed(1)}s late`);
+    }
     if (problems.length) throw new Error("recording assertions failed: " + problems.join("; "));
     console.log("content assertions ok");
 
     await context.close();                                  // finalize video
     await browser.close();
+    // Only accept a webm written during THIS run — otherwise a leftover from
+    // an older run could be renamed into demo.webm and pass silently.
     const vids = fs.readdirSync(OUT_DIR)
       .filter((f) => f.endsWith(".webm") && f !== "demo.webm")
       .map((f) => ({ f, t: fs.statSync(path.join(OUT_DIR, f)).mtimeMs }))
+      .filter((v) => v.t >= recStart - 1000)
       .sort((a, b) => b.t - a.t);
-    if (!vids.length) throw new Error("no video produced");
+    if (!vids.length) throw new Error("no video produced this run");
     fs.renameSync(path.join(OUT_DIR, vids[0].f), path.join(OUT_DIR, "demo.webm"));
     console.log("recorded: demo/demo.webm");
   } finally {

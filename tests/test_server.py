@@ -299,11 +299,14 @@ class TokenAuthTest(unittest.TestCase):
         self.httpd.shutdown()
         self.httpd.server_close()
         self.thread.join(timeout=2)
-        self._token_patch.stop()
+        # Remove the throwaway token BEFORE stopping the patch — after stop(),
+        # server.TOKEN_PATH is the real ~/.config/studio/preflight-token again
+        # and removing it would silently break auth on a running dev instance.
         try:
             os.remove(server.TOKEN_PATH)
         except OSError:
             pass
+        self._token_patch.stop()
 
     def _post(self, path, body, headers=None):
         conn = self.http_client.HTTPConnection("127.0.0.1", self.port, timeout=5)

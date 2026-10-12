@@ -47,13 +47,13 @@ dispute PP-R-XGB-10190971, merchandise not received,
 funds placed on hold.
 
 9
-00:01:22,000 --> 00:01:35,000
+00:01:22,000 --> 00:01:38,000
 In that dispute record PayPal requested PROOF OF
 FULFILLMENT — the same evidence type the panel flagged
 before shipment, now marked requested-in-dispute in amber.
 
 10
-00:01:35,000 --> 00:01:50,000
+00:01:38,000 --> 00:01:50,000
 That is the product's claim: the evidence PayPal demands
 after a dispute is what Preflight surfaces before
 shipment — turning declared data into verified shipping

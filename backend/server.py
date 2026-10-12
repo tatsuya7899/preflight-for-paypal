@@ -25,6 +25,14 @@ from backend import meaning, paypal, policy, rules
 TOKEN_PATH = os.path.expanduser("~/.config/studio/preflight-token")
 HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
+MAX_BODY_BYTES = 1_000_000  # request bodies are tiny JSON; cap to avoid
+                            # unbounded rfile.read on a hostile Content-Length
+
+
+class _BodyTooLarge(Exception):
+    """Raised by _read_json_body when Content-Length exceeds MAX_BODY_BYTES."""
+
+
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
 # --- fixture mode (judge-runnable path without PayPal credentials) -----------
@@ -175,8 +183,13 @@ def generate_token():
     """
     token = secrets.token_hex(32)
     os.makedirs(os.path.dirname(TOKEN_PATH), exist_ok=True)
-    with open(TOKEN_PATH, "w") as f:
+    # Create with mode 0600 from the start — open("w") + chmod would leave a
+    # umask-dependent window where the file could briefly be world-readable.
+    fd = os.open(TOKEN_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
         f.write(token)
+    # Tighten permissions for a pre-existing file too (os.open's mode only
+    # applies at creation; an existing file keeps its old mode).
     os.chmod(TOKEN_PATH, stat.S_IRUSR | stat.S_IWUSR)
     return token
 
@@ -226,9 +239,9 @@ def handle_check(body):
     if order_id:
         order = paypal.get_order(order_id)
     else:
-        # No order_id resolvable from the capture (design doc: "不在時はorder_id
-        # =nullで返し、コンソールからの手動order_id入力を促す"). Without an
-        # order we cannot build purchase_units for the rule layer.
+        # No order_id resolvable from the capture. A 404 here is what the
+        # panel's capture_id→order_id fallback listens for (design doc §ID
+        # contract, revised 2026-10-12).
         return 404, {"error": "could not resolve order_id from capture_id"}
 
     if _is_http_error(order):
@@ -290,6 +303,8 @@ class PreflightHandler(BaseHTTPRequestHandler):
 
     def _read_json_body(self):
         length = int(self.headers.get("Content-Length") or 0)
+        if length > MAX_BODY_BYTES:
+            raise _BodyTooLarge(length)
         raw = self.rfile.read(length) if length else b""
         if not raw:
             return {}
@@ -312,6 +327,9 @@ class PreflightHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             body = self._read_json_body()
+        except _BodyTooLarge:
+            self._send_json(413, {"error": "request body too large"})
+            return
         except (json.JSONDecodeError, ValueError):
             self._send_json(400, {"error": "invalid JSON body"})
             return
@@ -328,7 +346,7 @@ class PreflightHandler(BaseHTTPRequestHandler):
         if self.path == "/track":
             token = self.headers.get("X-Preflight-Token")
             expected = read_token()
-            if not token or not expected or token != expected:
+            if not token or not expected or not secrets.compare_digest(token, expected):
                 self._send_json(403, {"error": "missing or invalid X-Preflight-Token"})
                 return
             status, payload = handle_track(body)

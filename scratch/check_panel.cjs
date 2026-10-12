@@ -26,7 +26,12 @@ const NO_DISPUTE = JSON.parse(JSON.stringify(CHECK_RESP));
 delete NO_DISPUTE.dispute;
 NO_DISPUTE.capture_id = "NODISPUTE000000000";
 
-// after-track variant: TRACKING_REQUIRED flips to pass
+// after-track variant: TRACKING_REQUIRED flips to pass.
+// NOTE (review 2026-10-12): this is a HAND-BUILT mutation of the real
+// evaluate() output — basis string and summary counts are written by hand and
+// can drift if rules.py changes. Regenerate verdict_F.json (gen_mock.py) and
+// re-check this block on rule changes; the server-side track→re-check loop
+// itself is covered by the fixture-mode tests in tests/test_server.py.
 const AFTER = JSON.parse(JSON.stringify(CHECK_RESP));
 for (const c of AFTER.checks) {
   if (c.condition === "TRACKING_REQUIRED") {

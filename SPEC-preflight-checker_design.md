@@ -35,7 +35,7 @@
 
 - `/check`入力は **`capture_id`(必須)** とする。コンソール画面・紛争API・trackers APIが使うIDはcapture側(sandbox実測: trackingは`4EC24563F7235632E`等capture IDで登録済み)
 - order_id入力を受けた場合は `GET /v2/checkout/orders/{id}` で `purchase_units[].payments.captures[0].id` に解決(複数captureは先頭1件+verdictに全capture一覧を返す)
-- capture_id→order_idの逆解決はcapture GETの`supplementary_data.related_ids.order_id`(不在時はorder_id=nullで返し、コンソールからの手動order_id入力を促す)
+- capture_id→order_idの逆解決はcapture GETの`supplementary_data.related_ids.order_id`(**改訂2026-10-12**: 不在時は404エラーを返す——パネル側が404を「order_idでの再試行」トリガとして使うcapture_id→order_idフォールバックの前提。設計当初の「order_id=nullで返し手動入力を促す」案は実装上のフォールバック方式と競合するため廃止)
 - verdictは `order_id`・`capture_id`の両方を返す
 
 ## データモデル・インターフェース
