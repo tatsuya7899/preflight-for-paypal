@@ -1,5 +1,7 @@
 # Devpost 提出文面ドラフト(2026-10-12)
 
+**提出済み(2026-10-12)**: https://devpost.com/software/preflight-for-paypal
+
 **このファイルの構成**: 各項目の ```text``` フェンス内=**Devpostにそのまま貼る英語本文**。フェンス外の日本語は転記時の注意書き(貼らない)。
 
 AI審査フィルター対策(REF-hackathon-ai-screening)7項目を適用済み:
