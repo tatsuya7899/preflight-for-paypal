@@ -27,12 +27,17 @@ def main():
     trackers_path = BACKEND / "fixtures" / "trackers_F.json"
     trackers = json.loads(trackers_path.read_text()) if trackers_path.exists() else []
 
-    semantic = meaning.run(order)
-    verdict = rules.evaluate(order, trackers, semantic)
+    # Same extraction as backend/server.py handle_check(): evaluate() takes the
+    # meaning-layer's semantic payload (or None when the layer did not run),
+    # not the whole result envelope. The top-level "semantic" key keeps the
+    # full envelope for the mock's semantic-layer section.
+    semantic_result = meaning.run(order)
+    semantic_payload = semantic_result["semantic"] if semantic_result["ran"] else None
+    verdict = rules.evaluate(order, trackers, semantic_payload)
     out = {
         "capture_id": "3J366679AY2283450",
         "order_id": "3UJ2460633408874H",
-        "semantic": semantic,
+        "semantic": semantic_result,
         "verdict": verdict,
     }
     print(json.dumps(out, indent=1, ensure_ascii=False))
