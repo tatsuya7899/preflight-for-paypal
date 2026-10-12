@@ -101,8 +101,8 @@ key is configured; no real PayPal call is made. The panel labels PayPal's
 ### Verify the build
 
 ```bash
-python3 -m pytest tests/     # 91 tests
-node scratch/check_panel.cjs # 31 browser checks (requires playwright)
+python3 -m pytest tests/     # 110 tests
+node scratch/check_panel.cjs # 37 browser checks (requires playwright)
 ```
 
 ## 現在位置(2026-10-11時点)
