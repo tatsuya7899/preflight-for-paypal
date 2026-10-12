@@ -38,7 +38,7 @@
 | S2 | 規約条項照合監査: policy.pyの条項根拠を現行US版(文書日付ピン)で再確認・SHIP_WITHIN_DAYSのrequired/recommended文言・HIGH_VALUE_SIGNATUREのfail→warning判定を含む | 探索型 | builder+web確認 | #3 | ✅**完了2026-10-12**: 現行US版(ver. 2026-01-26)と突合。発見3件——創作条項番号(§1(a)〜§2)を実在の節名へ書換・署名確認は現行US版に非存在のためfixed_status降格(fail不可能に)・除外キーワード再構成+語境界マッチ化。監査記録=`bd/AUDIT-seller-protection-terms_20261012.md`・98テスト全Green |
 | S3 | payment_source変動で旗が動くかのテスト(Gate 0残条件②・sandboxスクリプト) | 探索型 | builder | #4 | 変動有無が1行で記録される |
 | S4 | 紛争n=2再現(UNAUTHORIZED系・デモ録画前・実API) | 安定型 | builder | #4,#8 | UNAUTHORIZED案件でevidence要求まで再現 |
-| S5 | 3幕デモ台本+録画+README台本化+AI審査フィルター対策(REF-hackathon-ai-screening) | 安定型 | builder+監督 | #11,S1 | 提出物一式がDevpost要件・文言規律(裸対置禁止)を満たす |
+| S5 | 3幕デモ台本+録画+README台本化+AI審査フィルター対策(REF-hackathon-ai-screening) | 安定型 | builder+監督 | #11,S1 | ✅**完了2026-10-12**: `demo/demo.webm`(47.9s)をフレーム抽出で全幕目視検証——診断2FAIL・追跡登録「registered — re-check complete」・BEFORE/AFTER fail→pass転換・紛争バナー+「in dispute」バッジ全て確認。録画障害の根本原因=zenn previewが*:8000を占有し/healthが偽陽性→専用ポート8765+isOursマーカ判定+認証プリプローブで根治 |
 | S6 | 実セラー実演(MSC(b)検収・相手の直近実注文のsandbox再現注文で実施) | — | **利用者(人間調達)** | #13 | 相手の「使い続けていい?」自発質問の有無が記録される(11/09逆算期限) |
 
 ## 差し戻し

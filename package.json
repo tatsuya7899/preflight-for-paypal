@@ -1,0 +1,13 @@
+{
+  "name": "preflight-for-paypal",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Preflight for PayPal — Seller Protection readiness checker (PayPal AI Hackathon 2026)",
+  "devDependencies": {
+    "playwright": "^1.57.0"
+  },
+  "scripts": {
+    "test:panel": "node scratch/check_panel.cjs",
+    "record:demo": "node scratch/record_demo.cjs"
+  }
+}

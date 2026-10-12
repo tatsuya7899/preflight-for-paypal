@@ -2,8 +2,7 @@
 // Stubs chrome.* APIs, drives the actual UI, asserts rendered truth.
 const path = require("path");
 const fs = require("fs");
-const { chromium } = require(path.join(
-  "/Users/tatsuyasasaki/Developer/tatsuyasasaki-portfolio/node_modules", "playwright"));
+const { chromium } = require("playwright");   // devDependency — see package.json
 
 const PANEL = "file://" + path.resolve(__dirname, "../extension/panel.html");
 const VERDICT = JSON.parse(fs.readFileSync(path.resolve(__dirname, "verdict_F.json"), "utf8")).verdict;
@@ -12,6 +11,20 @@ const VERDICT = JSON.parse(fs.readFileSync(path.resolve(__dirname, "verdict_F.js
 const CHECK_RESP = VERDICT; // verdict_F.json's "verdict" is already evaluate()-shaped
 CHECK_RESP.capture_id = "3J366679AY2283450";
 CHECK_RESP.order_id = "3UJ2460633408874H";
+// fixture-mode dispute block — mirrors server._dispute_summary output for the
+// disputed capture 3J366679AY2283450 (dispute PP-R-XGB-10190971)
+CHECK_RESP.dispute = {
+  dispute_id: "PP-R-XGB-10190971",
+  reason: "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+  status: "UNDER_REVIEW",
+  life_cycle_stage: "CHARGEBACK",
+  evidence_types: ["PROOF_OF_FULFILLMENT"],
+  source: "fixture (captured sandbox dispute)",
+};
+// variant with no dispute key — verifies the banner hides honestly
+const NO_DISPUTE = JSON.parse(JSON.stringify(CHECK_RESP));
+delete NO_DISPUTE.dispute;
+NO_DISPUTE.capture_id = "NODISPUTE000000000";
 
 // after-track variant: TRACKING_REQUIRED flips to pass
 const AFTER = JSON.parse(JSON.stringify(CHECK_RESP));
@@ -32,7 +45,7 @@ const t = (name, ok, extra = "") => { results.push([name, ok, extra]); };
   const page = await browser.newPage({ viewport: { width: 400, height: 900 } });
 
   const calls = [];
-  await page.addInitScript(([checkResp, afterResp]) => {
+  await page.addInitScript(([checkResp, afterResp, noDisputeResp]) => {
     let checkCount = 0;
     window.__calls = [];
     window.chrome = {
@@ -51,6 +64,10 @@ const t = (name, ok, extra = "") => { results.push([name, ok, extra]); };
                 cb({ ok: false, status: 404, data: { error: "could not resolve order_id from capture_id" } });
                 return;
               }
+              if (msg.capture_id === "NODISPUTE000000000") {
+                cb({ ok: true, status: 200, data: noDisputeResp });
+                return;
+              }
               cb({ ok: true, status: 200, data: checkCount <= 1 || msg.order_id === "ORDERONLY123456789" ? checkResp : afterResp });
             }
             else if (msg.type === "track") cb({ ok: true, status: 200, data: { trackers: [{ tracking_number: msg.tracking_number, carrier: msg.carrier }] } });
@@ -67,7 +84,7 @@ const t = (name, ok, extra = "") => { results.push([name, ok, extra]); };
       },
       storage: { local: { get: () => Promise.resolve({}) } },
     };
-  }, [CHECK_RESP, AFTER]);
+  }, [CHECK_RESP, AFTER, NO_DISPUTE]);
 
   await page.goto(PANEL);
   await page.waitForTimeout(300);
@@ -111,9 +128,14 @@ const t = (name, ok, extra = "") => { results.push([name, ok, extra]); };
   t("PoDA slot unfillable", (await slotOf("#slot-PROOF_OF_DELIVERY_ADDRESS")).includes("unfillable"));
   t("TRACKING slot fillable", (await slotOf("#slot-TRACKING_INFORMATION")).includes("fillable"));
   t("PoF slot fillable", (await slotOf("#slot-PROOF_OF_FULFILLMENT")).includes("fillable"));
-  // no real-case badge (no dispute data in real verdict)
+  // no real-case badge, but the fixture dispute banner IS wired now
   t("no real-case badge", (await page.locator(".badge-case").count()) === 0);
-  t("dispute banner hidden", !(await page.locator("#disputeBanner").isVisible()));
+  t("dispute banner visible", await page.locator("#disputeBanner").isVisible());
+  t("banner names dispute id", (await page.locator("#bannerMain").innerText()).includes("PP-R-XGB-10190971"));
+  // Act-3 correspondence: the slot the dispute record asks for is marked
+  t("PoF slot marked requested-in-dispute",
+    (await page.locator("#slot-PROOF_OF_FULFILLMENT .req-note").allInnerTexts()).join("").includes("PP-R-XGB-10190971"));
+  t("PoDA slot not marked", (await page.locator("#slot-PROOF_OF_DELIVERY_ADDRESS .req-note").count()) === 0);
 
   // 9. fix section shows register tracking
   t("fix form visible", await page.locator("#fixForm").isVisible());
@@ -156,6 +178,13 @@ const t = (name, ok, extra = "") => { results.push([name, ok, extra]); };
   await page.waitForTimeout(400);
   const sl = await page.evaluate(() => document.getElementById("strip").scrollLeft);
   t("strip scrolled", sl > 100, String(Math.round(sl)));
+
+  // 12b. verdict without dispute key hides the banner honestly
+  await page.locator("#capInput").fill("NODISPUTE000000000");
+  await page.locator("#btnCheck").click();
+  await page.waitForTimeout(200);
+  t("banner hidden without dispute", !(await page.locator("#disputeBanner").isVisible()));
+  t("no requested marks without dispute", (await page.locator(".req-note").count()) === 0);
 
   // 13. error path: check with empty id
   await page.locator("#capInput").fill("");

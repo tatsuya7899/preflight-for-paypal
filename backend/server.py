@@ -18,6 +18,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from backend import meaning, paypal, policy, rules
 
+# One shared token file for every local instance (any port). A second server
+# spawn overwrites it — the newest instance's token then becomes the only one
+# /track accepts. Acceptable for a single-user localhost tool; documented so
+# the behavior is a choice, not an accident.
 TOKEN_PATH = os.path.expanduser("~/.config/studio/preflight-token")
 HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -33,6 +37,8 @@ _fixture_mode = False
 _fixture_orders = {}     # order_id -> order fixture dict
 _fixture_captures = {}   # capture_id -> capture fixture dict
 _fixture_trackers = {}   # capture_id -> [tracker dict, ...] (in-memory)
+_fixture_disputes = {}   # capture_id -> dispute fixture dict (keyed by
+                         # disputed_transactions[].seller_transaction_id)
 
 
 def _load_fixtures():
@@ -46,6 +52,32 @@ def _load_fixtures():
             with open(path) as f:
                 capture = json.load(f)
             _fixture_captures[capture.get("id")] = capture
+        elif fn.startswith("dispute_") and fn.endswith(".json"):
+            with open(path) as f:
+                dispute = json.load(f)
+            for txn in dispute.get("disputed_transactions") or []:
+                cid = txn.get("seller_transaction_id")
+                if cid:
+                    _fixture_disputes[cid] = dispute
+
+
+def _dispute_summary(dispute):
+    """Slim, honest dispute block for the verdict — enough for the panel to
+    show which evidence types appear in the dispute record (the Act-3
+    correspondence), without forwarding buyer PII."""
+    evidence_types = sorted({
+        e.get("evidence_type")
+        for e in dispute.get("evidences") or []
+        if e.get("evidence_type") and e.get("evidence_type") != "CREATE"
+    })
+    return {
+        "dispute_id": dispute.get("dispute_id"),
+        "reason": dispute.get("reason"),
+        "status": dispute.get("status"),
+        "life_cycle_stage": dispute.get("dispute_life_cycle_stage"),
+        "evidence_types": evidence_types,
+        "source": "fixture (captured sandbox dispute)",
+    }
 
 
 def _fixture_first_capture_id(order):
@@ -92,6 +124,12 @@ def _fixture_handle_check(body):
     semantic = semantic_result["semantic"] if semantic_result["ran"] else None
 
     verdict = rules.evaluate(order, trackers, semantic)
+    # Attach a dispute summary when a captured dispute exists for this
+    # capture — fixture mode only (live mode has no disputes-list call wired,
+    # so the key is absent rather than fabricated).
+    dispute = _fixture_disputes.get(capture_id)
+    if dispute is not None:
+        verdict["dispute"] = _dispute_summary(dispute)
     return 200, verdict
 
 
@@ -119,8 +157,13 @@ def _fixture_handle_track(body):
     }
     if carrier_name_other is not None:
         tracker["carrier_name_other"] = carrier_name_other
-    _fixture_trackers.setdefault(capture_id, []).append(tracker)
-    return 200, {"trackers": _fixture_trackers[capture_id]}
+    # Upsert by tracking_number — the live Trackers API does not list the same
+    # tracking number twice on re-registration, so the fixture must not either
+    # (re-running the demo would otherwise stack duplicate rows on screen).
+    trackers = _fixture_trackers.setdefault(capture_id, [])
+    trackers[:] = [t for t in trackers if t.get("tracking_number") != tracking_number]
+    trackers.append(tracker)
+    return 200, {"trackers": trackers}
 
 
 def generate_token():
@@ -273,6 +316,10 @@ class PreflightHandler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": "invalid JSON body"})
             return
 
+        # /check is unauthenticated by design: it is a read-only evaluation and
+        # the server binds to 127.0.0.1 only. /track is the write path (it
+        # registers shipping data with PayPal), so it is the one that requires
+        # the X-Preflight-Token header.
         if self.path == "/check":
             status, payload = handle_check(body)
             self._send_json(status, payload)
@@ -299,8 +346,11 @@ def make_server(port=None, fixture=None):
     if _fixture_mode:
         _load_fixtures()
     port = port or int(os.environ.get("PREFLIGHT_PORT", DEFAULT_PORT))
+    server = HTTPServer((HOST, port), PreflightHandler)
+    # Write the token only AFTER the bind succeeds — if the port is taken,
+    # writing first would clobber the token a still-running instance relies on.
     generate_token()
-    return HTTPServer((HOST, port), PreflightHandler)
+    return server
 
 
 def main():

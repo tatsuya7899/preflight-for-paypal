@@ -128,6 +128,9 @@ async function runCheck(idValue) {
     note("Unexpected response shape from backend.", "var(--danger)");
     return false;
   }
+  // Data contract note: verdict.dispute is present only when the backend has a
+  // captured dispute for this capture (fixture mode). Live mode omits the key
+  // entirely — the banner stays hidden rather than showing fabricated data.
   // keep the previous verdict for §06 only when re-checking the SAME order
   previousVerdict = (currentVerdict && currentVerdict.order_id === verdict.order_id) ? currentVerdict : null;
   currentVerdict = verdict;
@@ -140,10 +143,11 @@ async function runCheck(idValue) {
 function render(v, prev) {
   $("metaOrder").textContent = v.order_id ? `${v.order_id.slice(0, 8)}…${v.order_id.slice(-5)}` : "—";
   renderSummary(v.summary);
+  renderDispute(v.dispute);
   renderCards(v.checks);
   renderFlags(v.flags);
   renderSemantic(v.meaning);
-  renderSlots(v.checks);
+  renderSlots(v.checks, v.dispute);
   renderFix(v);
   renderBeforeAfter(v, prev);
 }
@@ -153,6 +157,16 @@ function renderSummary(s) {
     `<div class="chip p"><div class="n">${Number(s.n_pass) | 0}</div><div class="l">PASS</div></div>
      <div class="chip f"><div class="n">${Number(s.n_fail) | 0}</div><div class="l">FAIL</div></div>
      <div class="chip n"><div class="n">${Number(s.n_not_assessable) | 0}</div><div class="l">N/A</div></div>`;
+}
+
+function renderDispute(d) {
+  const b = $("disputeBanner");
+  if (!d || !d.dispute_id) { b.hidden = true; return; }
+  b.hidden = false;
+  $("bannerMain").textContent = `dispute ${d.dispute_id} — ${d.status || "status unknown"}`;
+  const types = (d.evidence_types || []).join(", ");
+  $("bannerSub").textContent = `${d.reason || "reason unknown"} · evidence in dispute record: ${types || "none"}`;
+  $("bannerSrc").textContent = d.source || "dispute data";
 }
 
 const pill = (st) =>
@@ -295,9 +309,14 @@ const SLOT_DESC = {
   fillable: "Not present in this order's API data yet — it can still be produced.",
   unfillable: "Cannot be produced for this order — every check requiring it prescribes not shipping.",
 };
-function renderSlots(checks) {
+function renderSlots(checks, dispute) {
   const root = $("slotRoot");
   root.innerHTML = "";
+  const disputedTypes = new Set((dispute && dispute.evidence_types) || []);
+  const reqNote = (t) =>
+    disputedTypes.has(t)
+      ? `<span class="req-note" title="this evidence type appears in the dispute record">requested in dispute ${esc(dispute.dispute_id)}</span>`
+      : "";
   const refs = {};
   for (const c of checks) for (const t of c.expected_evidence || []) {
     (refs[t] = refs[t] || []).push({
@@ -315,13 +334,13 @@ function renderSlots(checks) {
   for (const t of bigTypes) {
     const st = deriveSlotState(refs[t]);
     const el = document.createElement("div");
-    el.className = "slot " + st;
+    el.className = "slot " + st + (disputedTypes.has(t) ? " requested" : "");
     el.id = "slot-" + t;
     const refTxt = refs[t].map((r) => `${brk(esc(r.condition))} (${esc(r.status)})`).join(" · ");
     el.innerHTML = `<div class="pouch">${icon(t)}</div>
       <div class="body"><div class="shead"><div class="sname">${brk(esc(t))}</div><span class="sstate ss-${st}">${st.toUpperCase()}</span></div>
         <div class="sdesc">${SLOT_DESC[st]}</div>
-        <div class="srefs">referenced by: ${refTxt}</div></div>`;
+        <div class="srefs">referenced by: ${refTxt} ${reqNote(t)}</div></div>`;
     root.appendChild(el);
   }
   if (smallTypes.length) {
@@ -336,8 +355,11 @@ function renderSlots(checks) {
       // smallTypes have no fail refs by definition; show "n/a" only when
       // every referencing check is not_assessable, otherwise "pass"
       const st = refs[t].every((r) => r.status === "not_assessable") ? "not_assessable" : "pass";
-      chip.title = refs[t].map((r) => `${r.condition} (${r.status})`).join(" · ");
-      chip.innerHTML = `${icon(t)}<span>${brk(esc(t))}</span><span class="rc-st">${st === "not_assessable" ? "n/a" : esc(st)}</span>`;
+      const reqd = disputedTypes.has(t);
+      chip.title = refs[t].map((r) => `${r.condition} (${r.status})`).join(" · ")
+        + (reqd ? ` — requested in dispute ${dispute.dispute_id}` : "");
+      if (reqd) chip.classList.add("requested");
+      chip.innerHTML = `${icon(t)}<span>${brk(esc(t))}</span><span class="rc-st">${reqd ? "in dispute" : st === "not_assessable" ? "n/a" : esc(st)}</span>`;
       list.appendChild(chip);
     }
     wrap.appendChild(list);

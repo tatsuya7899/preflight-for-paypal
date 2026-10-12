@@ -166,9 +166,11 @@ class FixtureModeTest(unittest.TestCase):
         self._prev_orders = dict(server._fixture_orders)
         self._prev_captures = dict(server._fixture_captures)
         self._prev_trackers = dict(server._fixture_trackers)
+        self._prev_disputes = dict(server._fixture_disputes)
         server._fixture_orders.clear()
         server._fixture_captures.clear()
         server._fixture_trackers.clear()
+        server._fixture_disputes.clear()
         server._load_fixtures()
         server._fixture_mode = True
         # file docstring: no real network access — the LLM layer must be
@@ -191,6 +193,8 @@ class FixtureModeTest(unittest.TestCase):
         server._fixture_captures.update(self._prev_captures)
         server._fixture_trackers.clear()
         server._fixture_trackers.update(self._prev_trackers)
+        server._fixture_disputes.clear()
+        server._fixture_disputes.update(self._prev_disputes)
 
     def test_check_by_order_id_returns_verdict(self):
         order_id = sorted(server._fixture_orders)[0]
@@ -242,6 +246,31 @@ class FixtureModeTest(unittest.TestCase):
             "carrier": "UPS",
         })
         self.assertEqual(status, 404)
+
+    def test_check_attaches_dispute_summary_for_disputed_capture(self):
+        """The disputed fixture capture (3J366679AY2283450, dispute
+        PP-R-XGB-10190971) gets a slim dispute block — the Act-3
+        correspondence the demo shows."""
+        status, verdict = server.handle_check(
+            {"capture_id": "3J366679AY2283450"})
+        self.assertEqual(status, 200)
+        self.assertIn("dispute", verdict)
+        d = verdict["dispute"]
+        self.assertEqual(d["dispute_id"], "PP-R-XGB-10190971")
+        self.assertEqual(d["reason"], "MERCHANDISE_OR_SERVICE_NOT_RECEIVED")
+        self.assertIn("PROOF_OF_FULFILLMENT", d["evidence_types"])
+        self.assertIn("fixture", d["source"])
+        # No buyer PII is forwarded into the verdict.
+        self.assertNotIn("buyer", json.dumps(d))
+        self.assertNotIn("email", json.dumps(d))
+
+    def test_check_omits_dispute_for_clean_capture(self):
+        """Captures with no dispute fixture carry no `dispute` key at all —
+        the panel hides the banner rather than showing fabricated data."""
+        status, verdict = server.handle_check(
+            {"capture_id": "4EC24563F7235632E"})  # order A — no dispute fixture
+        self.assertEqual(status, 200)
+        self.assertNotIn("dispute", verdict)
 
 
 class TokenAuthTest(unittest.TestCase):

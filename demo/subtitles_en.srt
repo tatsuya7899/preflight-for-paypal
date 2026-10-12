@@ -1,0 +1,68 @@
+1
+00:00:00,000 --> 00:00:08,000
+Preflight for PayPal — a Chrome extension that checks
+seven Seller Protection requirements on a PayPal order
+before the seller ships.
+
+2
+00:00:08,000 --> 00:00:16,000
+This order's PayPal flag says ELIGIBLE — but that flag
+is a declared-data snapshot, not a decision.
+
+3
+00:00:16,000 --> 00:00:26,000
+Preflight evaluates the order against the US Seller
+Protection terms and finds two failing Basic Requirements:
+no shipping address on the transaction,
+and no proof of shipment or delivery.
+
+4
+00:00:26,000 --> 00:00:40,000
+Evidence slots show exactly what is missing —
+TRACKING INFORMATION and PROOF OF FULFILLMENT are still
+fillable; PROOF OF DELIVERY ADDRESS is unfillable for
+this order — the honest answer here is do not ship.
+
+5
+00:00:40,000 --> 00:00:52,000
+Now the corrective loop. Registering a UPS tracking
+number writes it back through PayPal's Shipping
+Trackers API, then re-checks the order.
+
+6
+00:00:52,000 --> 00:01:00,000
+The BEFORE / AFTER view shows TRACKING REQUIRED flip
+from fail to pass.
+
+7
+00:01:00,000 --> 00:01:10,000
+What remains failing is honest — a missing transaction
+address cannot be repaired in-panel; the prescription
+is do not ship and re-confirm via a new transaction.
+
+8
+00:01:10,000 --> 00:01:22,000
+This exact capture was later disputed — real sandbox
+dispute PP-R-XGB-10190971, merchandise not received,
+funds placed on hold.
+
+9
+00:01:22,000 --> 00:01:35,000
+In that dispute record PayPal requested PROOF OF
+FULFILLMENT — the same evidence type the panel flagged
+before shipment, now marked requested-in-dispute in amber.
+
+10
+00:01:35,000 --> 00:01:50,000
+That is the product's claim: the evidence PayPal demands
+after a dispute is what Preflight surfaces before
+shipment — turning declared data into verified shipping
+readiness for agentic commerce.
+
+11
+00:01:50,000 --> 00:02:00,000
+Seven deterministic checks, honest not-assessable states,
+a write-back correction loop, and a judge-runnable
+fixture mode — no PayPal account needed.
+Preflight for PayPal is not legal advice;
+it is declared data, checked.

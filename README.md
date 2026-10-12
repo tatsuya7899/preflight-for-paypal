@@ -2,9 +2,50 @@
 
 ## For judges — run it yourself (English)
 
-**Preflight for PayPal** is a Chrome extension + local backend that checks a
-PayPal order against Seller Protection requirements *before* the seller ships,
-shows which conditions are not met, and registers tracking back to PayPal.
+**Preflight for PayPal — Seller Protection readiness for sellers: 7 checks,
+6 fixture orders, 1 captured sandbox dispute — runnable in ~2 minutes with no
+PayPal account.** A Chrome extension + local backend that checks a PayPal order
+against Seller Protection requirements *before* the seller ships, shows which
+conditions are not met, and registers tracking back to PayPal.
+
+Unlike Guzco's done-for-you dispute playbooks, Preflight is self-serve and
+lives inside the PayPal console — its claim is that **the evidence PayPal
+demands after a dispute is what Preflight surfaces before shipment**, because
+PayPal's `ELIGIBLE` flag is a *declared-data snapshot*, not a decision.
+
+### Demo walkthrough — the 3 acts (also `demo/DEMO_SCRIPT.md` + `demo/demo.webm`)
+
+1. **Diagnose** — paste capture id `3J366679AY2283450`, press **Check**.
+   PayPal's flag says `ELIGIBLE` (labeled *declared-data snapshot*), yet two
+   Basic Requirements of the US Seller Protection terms (ver. 2026-01-26)
+   fail: no shipping address, no proof of shipment. Evidence slots below show
+   what is missing and which of it is still fillable.
+2. **Correct** — in §05 FIX, choose UPS, enter tracking `1Z999AA10123456784`,
+   press **Register tracking** — a real write through PayPal's Shipping
+   Trackers API (fixture mode simulates it in memory). §06 BEFORE/AFTER shows
+   `TRACKING_REQUIRED` flip fail→pass; the missing-address fail honestly stays.
+3. **Correspondence** — the same capture later became real sandbox dispute
+   `PP-R-XGB-10190971` (item not received). The panel's amber banner names it,
+   and the `PROOF_OF_FULFILLMENT` slot is marked **requested in dispute** —
+   the exact evidence type flagged before shipment.
+
+### Judging-criteria map
+
+- **Technical implementation** — deterministic rule layer over the Orders API
+  and Shipping Trackers API, plus an honest-degrading LLM meaning layer
+  (`ran=false` without credentials). PayPal terms pinned to ver. 2026-01-26
+  with a per-check clause citation (`backend/policy.py`); dispute handling
+  via the Disputes API record.
+- **Design** — the gap between PayPal's `ELIGIBLE` flag and actual conditions
+  is surfaced inside the merchant console, at the moment of shipping — not in
+  a separate dashboard after the fact.
+- **Impact** — sellers lose goods *and* payment when a dispute arrives
+  unprotected; pre-shipment warnings map 1:1 onto the evidence types PayPal
+  later requests (demonstrated on a real sandbox dispute).
+- **Innovation** — for agentic commerce, declared data must be verified at
+  the edge: Preflight turns the flag's declaration into checked conditions
+  with fixed prescriptions, never predicting dispute outcomes.
+- **Presentation** — 2-minute 3-act demo video + judge-runnable fixture mode.
 
 ### Option A — fixture mode (no PayPal account needed, ~2 minutes)
 
