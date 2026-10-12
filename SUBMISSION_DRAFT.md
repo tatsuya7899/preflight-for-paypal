@@ -1,6 +1,8 @@
 # Devpost 提出文面ドラフト(2026-10-12)
 
-Devpostフォーム各項目への転記用。AI審査フィルター対策(REF-hackathon-ai-screening)7項目を適用済み:
+**このファイルの構成**: 各項目の ```text``` フェンス内=**Devpostにそのまま貼る英語本文**。フェンス外の日本語は転記時の注意書き(貼らない)。
+
+AI審査フィルター対策(REF-hackathon-ai-screening)7項目を適用済み:
 ①1文目に要約+数値 ②ルーブリック語彙を見出し化 ③テーマ語彙(agentic commerce・Seller Protection・Orders/Trackers/Disputes API) ④README=一次文書 ⑤字幕経由語彙 ⑥具体名詞密度 ⑦差分の明示命名。
 
 **正直表記の制約**(逸脱禁止): fixture由来を明記・LLM層は`ran=false`退化を開示・法的助言でない明記・裁定結果の予測をしない・実セラー検証は未検証と明記。
@@ -9,13 +11,24 @@ Devpostフォーム各項目への転記用。AI審査フィルター対策(REF-
 
 ## Project name
 
+```text
 Preflight for PayPal
+```
 
-## Tagline / Elevator pitch(1行)
+## Tagline / Elevator pitch
 
+```text
 Seller Protection readiness for sellers: 7 checks, 6 fixture orders, 1 captured sandbox dispute — check before you ship, inside the PayPal console.
+```
 
-## About this project — Inspiration
+## About this project
+
+Devpostの大枠テキストエリアに以下をそのまま貼る:
+
+```text
+**Preflight for PayPal — Seller Protection readiness for sellers: 7 checks, 6 fixture orders, 1 captured sandbox dispute — runnable in ~2 minutes with no PayPal account.**
+
+## Inspiration
 
 PayPal's `seller_protection.status` flag says `ELIGIBLE` — but it is a *declared-data snapshot*, not a decision on whether the seller's *actions* satisfy the US Seller Protection terms (ver. 2026-01-26). In our sandbox measurements the flag stayed `ELIGIBLE` on orders missing a shipping address, missing tracking, and carrying digital goods — while a card-funded capture flipped to `NOT_ELIGIBLE` the moment `payment_source` changed. A seller who trusts the flag ships unprotected, and when an item-not-received dispute lands they lose the goods **and** the payment.
 
@@ -71,20 +84,27 @@ Real-seller validation (one seller walkthrough on a sandbox-replayed live order 
 ## Honest limitations
 
 Fixture mode labels its data source on screen; the LLM semantic layer reports unavailable rather than faking output; the tool is not legal advice and never predicts dispute outcomes; business/customer validation is explicitly unverified. `ELIGIBLE` is always presented as PayPal's declared data, not our endorsement.
+```
 
 ## Built with
 
-`paypal-orders-api` `paypal-shipping-trackers-api` `paypal-disputes-api` `chrome-extension` `manifest-v3` `python` `javascript` `playwright` `sandbox-testing` `agentic-commerce`
+```text
+paypal-orders-api, paypal-shipping-trackers-api, paypal-disputes-api, chrome-extension, manifest-v3, python, javascript, playwright, sandbox-testing, agentic-commerce
+```
 
-## Try it out / repo
+## Try it out / links
 
-- **Repository**: {公開リポジトリURL — 要人間判断。非公開のままでは審査員がビルドできない。fixtureモードは認証情報不要}
-- **Demo video**: {YouTube URL — demo/demo.webm (119.96s) + demo/subtitles_en.srt を人間がアップロード}
-- **Judge quickstart**: `python3 -m backend.server --fixture` → `~/.config/studio/preflight-token` を拡張optionsへ → capture `3J366679AY2283450` で Check(README §Option A・約2分)
+- **Repository**: {公開リポジトリURL — 公開方式は前回確認どおり「全部入りで公開」を推奨・秘密スキャン通過後に確定}
+- **Demo video**: {YouTube URL — `demo/demo.webm`(119.96s)を人間がアップロード・`demo/subtitles_en.srt`を字幕として追加。字幕経由でルーブリック語彙が機械審査に届く}
+- **Judge quickstart(必要ならAdditional info欄へ)**:
+
+```text
+Quickstart (no PayPal account, ~2 min): `python3 -m backend.server --fixture` → paste the token from `~/.config/studio/preflight-token` into the extension options → open the side panel, check capture `3J366679AY2283450`. Full steps: README §Option A.
+```
 
 ## 提出前の人間作業(APIではできない分)
 
-1. **動画アップロード**: `demo/demo.webm`をYouTube限定公開へ+`demo/subtitles_en.srt`を字幕として追加(字幕経由でルーブリック語彙が機械審査に届く)
-2. **リポジトリ公開判断**: Devpost「working build」要件のため公開リポジトリが実質必須。`bd/`(企画工程文書・内部メモ)を公開履歴に含めてよいか要判断——含めないなら提出用に別リポジトリを切る
-3. **フォーム転記**: 上記各項目をDevpostへ貼付
+1. **動画アップロード**: `demo/demo.webm`をYouTube限定公開へ+`demo/subtitles_en.srt`を字幕として追加
+2. **リポジトリ公開**: 全部入り公開の場合は公開前に秘密・個人情報の全履歴スキャンを実行してからpush
+3. **フォーム転記**: 上記フェンス内テキストをDevpostへ貼付
 4. **S6(実セラー実演)**: 人間調達依存・提出には「unverified」と明記済みでブロックなし
