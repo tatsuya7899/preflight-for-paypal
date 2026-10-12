@@ -228,24 +228,31 @@ def handle_check(body):
     if not order_id and not capture_id:
         return 400, {"error": "capture_id or order_id is required"}
 
+    order = None
     if order_id and not capture_id:
-        capture_id = paypal.resolve_capture_id(order_id)
+        # Fetch the order once and derive the capture id from it — calling
+        # resolve_capture_id() followed by get_order() would issue the order
+        # GET twice per /check, past the design doc's single-order-GET budget.
+        order = paypal.get_order(order_id)
+        if _is_http_error(order):
+            return _http_error_status(order), order
+        capture_id = paypal.capture_id_from_order(order)
         if capture_id is None:
             return 404, {"error": "could not resolve capture_id from order_id"}
 
     if not order_id:
         order_id = paypal.resolve_order_id(capture_id)
 
-    if order_id:
-        order = paypal.get_order(order_id)
-    else:
+    if not order_id:
         # No order_id resolvable from the capture. A 404 here is what the
         # panel's capture_id→order_id fallback listens for (design doc §ID
         # contract, revised 2026-10-12).
         return 404, {"error": "could not resolve order_id from capture_id"}
 
-    if _is_http_error(order):
-        return _http_error_status(order), order
+    if order is None:
+        order = paypal.get_order(order_id)
+        if _is_http_error(order):
+            return _http_error_status(order), order
 
     trackers_resp = paypal.get_trackers(capture_id)
     if _is_http_error(trackers_resp):
@@ -303,6 +310,11 @@ class PreflightHandler(BaseHTTPRequestHandler):
 
     def _read_json_body(self):
         length = int(self.headers.get("Content-Length") or 0)
+        # A negative Content-Length would slip past the MAX check below and
+        # rfile.read(-1) blocks until EOF — one client could stall this
+        # single-threaded server. Reject it as malformed.
+        if length < 0:
+            raise ValueError("negative Content-Length")
         if length > MAX_BODY_BYTES:
             raise _BodyTooLarge(length)
         raw = self.rfile.read(length) if length else b""
@@ -338,22 +350,26 @@ class PreflightHandler(BaseHTTPRequestHandler):
         # the server binds to 127.0.0.1 only. /track is the write path (it
         # registers shipping data with PayPal), so it is the one that requires
         # the X-Preflight-Token header.
-        if self.path == "/check":
-            status, payload = handle_check(body)
-            self._send_json(status, payload)
-            return
-
-        if self.path == "/track":
-            token = self.headers.get("X-Preflight-Token")
-            expected = read_token()
-            if not token or not expected or not secrets.compare_digest(token, expected):
-                self._send_json(403, {"error": "missing or invalid X-Preflight-Token"})
+        # The whole dispatch sits under a catch-all: an uncaught exception in
+        # handle_* would otherwise drop the connection with no response, which
+        # the panel cannot distinguish from "backend offline".
+        try:
+            if self.path == "/check":
+                status, payload = handle_check(body)
+            elif self.path == "/track":
+                token = self.headers.get("X-Preflight-Token")
+                expected = read_token()
+                if not token or not expected or not secrets.compare_digest(token, expected):
+                    self._send_json(403, {"error": "missing or invalid X-Preflight-Token"})
+                    return
+                status, payload = handle_track(body)
+            else:
+                self._send_json(404, {"error": "not found"})
                 return
-            status, payload = handle_track(body)
-            self._send_json(status, payload)
+        except Exception:
+            self._send_json(500, {"error": "internal error"})
             return
-
-        self._send_json(404, {"error": "not found"})
+        self._send_json(status, payload)
 
 
 def make_server(port=None, fixture=None):

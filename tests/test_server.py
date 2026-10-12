@@ -34,16 +34,126 @@ def _fixture_names():
     return [f for f in os.listdir(FIXTURES) if f.startswith("order_")]
 
 
-class HealthTest(unittest.TestCase):
+class _LiveServerBase(unittest.TestCase):
+    """Spin up a real localhost server (fixture=False, throwaway token file)
+    so tests exercise the actual HTTP handler, not re-derived payloads."""
+
+    def setUp(self):
+        import threading
+        import http.client
+
+        self.http_client = http.client
+        self._token_patch = mock.patch.object(
+            server, "TOKEN_PATH", "/tmp/preflight-token-test-" + os.urandom(4).hex()
+        )
+        self._token_patch.start()
+        # fixture=False explicitly: make_server() would otherwise read
+        # PREFLIGHT_FIXTURE from the environment and silently switch modes
+        # when pytest runs with the variable exported.
+        self.httpd = server.make_server(port=0, fixture=False)
+        self.port = self.httpd.server_address[1]
+        self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
+        self.thread.start()
+
+    def tearDown(self):
+        self.httpd.shutdown()
+        self.httpd.server_close()
+        self.thread.join(timeout=2)
+        # Remove the throwaway token BEFORE stopping the patch — after stop(),
+        # server.TOKEN_PATH is the real ~/.config/studio/preflight-token again
+        # and removing it would silently break auth on a running dev instance.
+        try:
+            os.remove(server.TOKEN_PATH)
+        except OSError:
+            pass
+        self._token_patch.stop()
+
+    def _post(self, path, body, headers=None):
+        conn = self.http_client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        conn.request("POST", path, body=json.dumps(body),
+                     headers={"Content-Type": "application/json", **(headers or {})})
+        resp = conn.getresponse()
+        status = resp.status
+        payload = json.loads(resp.read() or b"{}")
+        conn.close()
+        return status, payload
+
+
+class HealthTest(_LiveServerBase):
+    """Drive /health through the real handler — a self-asserted dict would
+    prove nothing about what the server actually returns."""
+
+    def _health(self):
+        conn = self.http_client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        conn.request("GET", "/health")
+        resp = conn.getresponse()
+        payload = json.loads(resp.read())
+        conn.close()
+        return payload
+
     def test_health_reports_llm_flag_true(self):
         with mock.patch.object(server.meaning, "llm_available", return_value=True):
-            status, payload = (200, {"ok": True, "llm": server.meaning.llm_available()})
-        self.assertEqual(payload, {"ok": True, "llm": True})
+            payload = self._health()
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["llm"])
 
     def test_health_reports_llm_flag_false(self):
         with mock.patch.object(server.meaning, "llm_available", return_value=False):
-            payload = {"ok": True, "llm": server.meaning.llm_available()}
-        self.assertEqual(payload, {"ok": True, "llm": False})
+            payload = self._health()
+        self.assertFalse(payload["llm"])
+
+
+class RequestValidationTest(_LiveServerBase):
+    """Live-side degenerate inputs — the fixture path mocks these away."""
+
+    def test_oversize_content_length_is_413(self):
+        # The server must reject on the header alone, before reading a body.
+        conn = self.http_client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        conn.putrequest("POST", "/check")
+        conn.putheader("Content-Length", str(server.MAX_BODY_BYTES + 1))
+        conn.endheaders(b"")
+        resp = conn.getresponse()
+        status = resp.status
+        resp.read()
+        conn.close()
+        self.assertEqual(status, 413)
+
+    def test_negative_content_length_is_400(self):
+        # rfile.read(-1) would block until EOF and stall this single-threaded
+        # server — a negative length must be refused outright. Needs a raw
+        # socket; http.client will not send a negative Content-Length.
+        import socket as _socket
+        s = _socket.create_connection(("127.0.0.1", self.port), timeout=5)
+        s.sendall(b"POST /check HTTP/1.1\r\nHost: 127.0.0.1\r\n"
+                  b"Content-Length: -1\r\nConnection: close\r\n\r\n")
+        chunks = []
+        while True:
+            data = s.recv(4096)
+            if not data:
+                break
+            chunks.append(data)
+        s.close()
+        status_line = b"".join(chunks).split(b"\r\n", 1)[0]
+        self.assertIn(b" 400 ", status_line)
+
+    def test_malformed_json_is_400(self):
+        conn = self.http_client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        conn.request("POST", "/check", body=b"{not json",
+                     headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        status = resp.status
+        payload = json.loads(resp.read() or b"{}")
+        conn.close()
+        self.assertEqual(status, 400)
+        self.assertIn("error", payload)
+
+    def test_handler_exception_returns_500_not_dropped_connection(self):
+        # An uncaught exception in handle_* must surface as 500 — otherwise
+        # the panel cannot tell a crash from "backend offline".
+        with mock.patch.object(server, "handle_check", side_effect=KeyError("boom")):
+            status, payload = self._post("/check", {"capture_id": "X"})
+        self.assertEqual(status, 500)
+        self.assertIn("error", payload)
 
 
 class HandleCheckTest(unittest.TestCase):
@@ -71,17 +181,53 @@ class HandleCheckTest(unittest.TestCase):
         self.assertIn("flags", verdict)
 
     def test_check_by_order_id_resolves_capture_id(self):
-        with mock.patch.object(server.paypal, "resolve_capture_id", return_value=self.capture_id) as resolve, \
-             mock.patch.object(server.paypal, "resolve_order_id", return_value=self.order["id"]), \
-             mock.patch.object(server.paypal, "get_order", return_value=self.order), \
+        with mock.patch.object(server.paypal, "get_order", return_value=self.order) as get_order, \
              mock.patch.object(server.paypal, "get_trackers", return_value={"trackers": []}), \
              mock.patch.object(server.meaning, "run", return_value={"ran": False, "semantic": None,
                                                                       "fraud_warnings": [], "unassessable_patterns": []}):
             status, verdict = server.handle_check({"order_id": self.order["id"]})
 
-        resolve.assert_called_once_with(self.order["id"])
+        # The order is fetched exactly once — capture_id is derived from that
+        # same response rather than a second order GET (design: one order GET
+        # per /check).
+        get_order.assert_called_once_with(self.order["id"])
         self.assertEqual(status, 200)
         self.assertEqual(verdict["capture_id"], self.capture_id)
+
+    def test_check_with_both_ids_uses_them_without_resolution(self):
+        with mock.patch.object(server.paypal, "get_order", return_value=self.order) as get_order, \
+             mock.patch.object(server.paypal, "resolve_order_id") as roid, \
+             mock.patch.object(server.paypal, "get_trackers", return_value={"trackers": []}), \
+             mock.patch.object(server.meaning, "run", return_value={"ran": False, "semantic": None,
+                                                                      "fraud_warnings": [], "unassessable_patterns": []}):
+            status, verdict = server.handle_check(
+                {"order_id": self.order["id"], "capture_id": self.capture_id})
+
+        roid.assert_not_called()
+        get_order.assert_called_once_with(self.order["id"])
+        self.assertEqual(status, 200)
+        self.assertEqual(verdict["capture_id"], self.capture_id)
+
+    def test_check_tolerates_trackers_null(self):
+        """A live `{"trackers": null}` response passes None into evaluate() —
+        the check must still produce a verdict rather than crash."""
+        with mock.patch.object(server.paypal, "resolve_order_id", return_value=self.order["id"]), \
+             mock.patch.object(server.paypal, "get_order", return_value=self.order), \
+             mock.patch.object(server.paypal, "get_trackers", return_value={"trackers": None}), \
+             mock.patch.object(server.meaning, "run", return_value={"ran": False, "semantic": None,
+                                                                      "fraud_warnings": [], "unassessable_patterns": []}):
+            status, verdict = server.handle_check({"capture_id": self.capture_id})
+
+        self.assertEqual(status, 200)
+        self.assertIn("checks", verdict)
+
+    def test_check_by_order_id_relays_upstream_error(self):
+        error_resp = {"_http_error": 404, "_body": "NOT_FOUND"}
+        with mock.patch.object(server.paypal, "get_order", return_value=error_resp):
+            status, payload = server.handle_check({"order_id": self.order["id"]})
+
+        self.assertEqual(status, 404)
+        self.assertEqual(payload, error_resp)
 
     def test_check_relays_upstream_http_error_status(self):
         error_resp = {"_http_error": 404, "_body": "NOT_FOUND"}
@@ -273,50 +419,8 @@ class FixtureModeTest(unittest.TestCase):
         self.assertNotIn("dispute", verdict)
 
 
-class TokenAuthTest(unittest.TestCase):
+class TokenAuthTest(_LiveServerBase):
     """X-Preflight-Token gate on /track, exercised through the live HTTP server."""
-
-    def setUp(self):
-        import threading
-        import http.client
-
-        self.http_client = http.client
-        # Use a throwaway token path so we never touch the real
-        # ~/.config/studio/preflight-token used by a running dev instance.
-        self._token_patch = mock.patch.object(
-            server, "TOKEN_PATH", "/tmp/preflight-token-test-" + os.urandom(4).hex()
-        )
-        self._token_patch.start()
-        # fixture=False explicitly: make_server() would otherwise read
-        # PREFLIGHT_FIXTURE from the environment and silently switch modes
-        # when pytest runs with the variable exported.
-        self.httpd = server.make_server(port=0, fixture=False)
-        self.port = self.httpd.server_address[1]
-        self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
-        self.thread.start()
-
-    def tearDown(self):
-        self.httpd.shutdown()
-        self.httpd.server_close()
-        self.thread.join(timeout=2)
-        # Remove the throwaway token BEFORE stopping the patch — after stop(),
-        # server.TOKEN_PATH is the real ~/.config/studio/preflight-token again
-        # and removing it would silently break auth on a running dev instance.
-        try:
-            os.remove(server.TOKEN_PATH)
-        except OSError:
-            pass
-        self._token_patch.stop()
-
-    def _post(self, path, body, headers=None):
-        conn = self.http_client.HTTPConnection("127.0.0.1", self.port, timeout=5)
-        conn.request("POST", path, body=json.dumps(body),
-                     headers={"Content-Type": "application/json", **(headers or {})})
-        resp = conn.getresponse()
-        status = resp.status
-        payload = json.loads(resp.read() or b"{}")
-        conn.close()
-        return status, payload
 
     def test_track_without_token_is_403(self):
         status, payload = self._post("/track", {

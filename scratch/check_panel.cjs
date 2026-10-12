@@ -39,7 +39,10 @@ for (const c of AFTER.checks) {
     c.basis = "tracker 1Z999AA10123456784 (UPS) found for this capture";
   }
 }
-AFTER.summary = { n_pass: 3, n_fail: 1, n_not_assessable: 3 };
+// Derive summary counts from the mutated checks so a rules.py status rename
+// drifts the labels, not the arithmetic.
+AFTER.summary = { n_pass: 0, n_fail: 0, n_not_assessable: 0 };
+for (const c of AFTER.checks) AFTER.summary[`n_${c.status}`]++;
 AFTER.corrections = [];
 
 let results = [];

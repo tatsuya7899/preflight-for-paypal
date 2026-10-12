@@ -79,13 +79,10 @@ def get_capture(capture_id):
     return _api("GET", f"/v2/payments/captures/{capture_id}", token=token)
 
 
-def resolve_capture_id(order_id):
-    """order_id -> purchase_units[].payments.captures[0].id (ID契約 P0-1).
-
-    Returns None if the order could not be fetched or has no captures.
-    """
-    order = get_order(order_id)
-    if not isinstance(order, dict) or "_http_error" in order:
+def capture_id_from_order(order):
+    """Extract purchase_units[].payments.captures[0].id from an order dict
+    (ID契約 P0-1). Returns None if the order has no captures."""
+    if not isinstance(order, dict):
         return None
     purchase_units = order.get("purchase_units") or []
     for unit in purchase_units:
@@ -93,6 +90,19 @@ def resolve_capture_id(order_id):
         if captures:
             return captures[0].get("id")
     return None
+
+
+def resolve_capture_id(order_id):
+    """order_id -> capture id via a fresh order GET (ID契約 P0-1).
+
+    Returns None if the order could not be fetched or has no captures.
+    Callers that already hold the order should use capture_id_from_order()
+    instead of paying for a second GET.
+    """
+    order = get_order(order_id)
+    if not isinstance(order, dict) or "_http_error" in order:
+        return None
+    return capture_id_from_order(order)
 
 
 def resolve_order_id(capture_id):

@@ -90,9 +90,11 @@ async function waitHealth(tries = 60) {
     }
     console.log("auth probe ok");
 
-    // 2. browser context with video recording
-    const browser = await chromium.launch();
-    const context = await browser.newContext({
+    // 2. browser context with video recording — both are tracked so the
+    // finally below can close them on assertion failure too (an abandoned
+    // Chromium keeps running and leaves a half-written GUID webm behind).
+    let browser = await chromium.launch();
+    let context = await browser.newContext({
       viewport: { width: 420, height: 860 },
       recordVideo: { dir: OUT_DIR, size: { width: 420, height: 860 } },
     });
@@ -248,7 +250,9 @@ async function waitHealth(tries = 60) {
     console.log("content assertions ok");
 
     await context.close();                                  // finalize video
+    context = null;
     await browser.close();
+    browser = null;
     // Only accept a webm written during THIS run — otherwise a leftover from
     // an older run could be renamed into demo.webm and pass silently.
     const vids = fs.readdirSync(OUT_DIR)
@@ -260,6 +264,8 @@ async function waitHealth(tries = 60) {
     fs.renameSync(path.join(OUT_DIR, vids[0].f), path.join(OUT_DIR, "demo.webm"));
     console.log("recorded: demo/demo.webm");
   } finally {
+    if (context) await context.close().catch(() => {});
+    if (browser) await browser.close().catch(() => {});
     srv.kill();
   }
   process.exit(0);
