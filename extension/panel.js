@@ -63,7 +63,7 @@ async function boot() {
   const ds = $("dataState");
   const llm = $("llmState");
   if (health.ok && health.data && health.data.ok) {
-    ds.textContent = "live";
+    ds.textContent = health.data.fixture ? "fixture" : "live";
     ds.className = "ok";
     llm.textContent = health.data.llm ? "available" : "unavailable";
     llm.className = health.data.llm ? "ok" : "";

@@ -157,6 +157,93 @@ class HandleTrackTest(unittest.TestCase):
         self.assertIn("error", payload)
 
 
+class FixtureModeTest(unittest.TestCase):
+    """Fixture mode (--fixture / PREFLIGHT_FIXTURE): no PayPal calls, the
+    register→re-check loop works against backend/fixtures/* data."""
+
+    def setUp(self):
+        self._prev = server._fixture_mode
+        self._prev_orders = dict(server._fixture_orders)
+        self._prev_captures = dict(server._fixture_captures)
+        self._prev_trackers = dict(server._fixture_trackers)
+        server._fixture_orders.clear()
+        server._fixture_captures.clear()
+        server._fixture_trackers.clear()
+        server._load_fixtures()
+        server._fixture_mode = True
+        # file docstring: no real network access — the LLM layer must be
+        # mocked too, not just paypal (a machine with a real API key set
+        # would otherwise hit the network mid-test).
+        self._meaning_patch = mock.patch.object(
+            server.meaning, "run",
+            return_value={"ran": False, "semantic": None,
+                          "fraud_warnings": [], "unassessable_patterns": []})
+        self._meaning_patch.start()
+        if not server._fixture_orders:
+            self.skipTest("no order_*.json fixtures available")
+
+    def tearDown(self):
+        self._meaning_patch.stop()
+        server._fixture_mode = self._prev
+        server._fixture_orders.clear()
+        server._fixture_orders.update(self._prev_orders)
+        server._fixture_captures.clear()
+        server._fixture_captures.update(self._prev_captures)
+        server._fixture_trackers.clear()
+        server._fixture_trackers.update(self._prev_trackers)
+
+    def test_check_by_order_id_returns_verdict(self):
+        order_id = sorted(server._fixture_orders)[0]
+        status, verdict = server.handle_check({"order_id": order_id})
+        self.assertEqual(status, 200)
+        self.assertEqual(verdict["order_id"], order_id)
+        self.assertIn("checks", verdict)
+        self.assertIn("flags", verdict)
+
+    def test_check_by_capture_id_resolves_order(self):
+        capture_id = sorted(server._fixture_captures)[0]
+        status, verdict = server.handle_check({"capture_id": capture_id})
+        self.assertEqual(status, 200)
+        self.assertIsNotNone(verdict["order_id"])
+
+    def test_check_unknown_order_id_is_404(self):
+        status, payload = server.handle_check({"order_id": "NO_SUCH_ORDER_000"})
+        self.assertEqual(status, 404)
+        self.assertIn("error", payload)
+
+    def test_track_then_recheck_closes_the_loop(self):
+        """The judge-visible demo loop: fail → register → re-check passes."""
+        capture_id = sorted(server._fixture_captures)[0]
+        status, before = server.handle_check({"capture_id": capture_id})
+        self.assertEqual(status, 200)
+        tracking = next(c for c in before["checks"]
+                        if c["condition"] == "TRACKING_REQUIRED")
+        self.assertEqual(tracking["status"], "fail")  # fixture has no trackers
+
+        status, payload = server.handle_track({
+            "capture_id": capture_id,
+            "tracking_number": "1Z999AA10123456784",
+            "carrier": "UPS",
+        })
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["trackers"][0]["tracking_number"],
+                         "1Z999AA10123456784")
+
+        status, after = server.handle_check({"capture_id": capture_id})
+        self.assertEqual(status, 200)
+        tracking = next(c for c in after["checks"]
+                        if c["condition"] == "TRACKING_REQUIRED")
+        self.assertEqual(tracking["status"], "pass")
+
+    def test_track_unknown_capture_id_is_404(self):
+        status, payload = server.handle_track({
+            "capture_id": "NO_SUCH_CAPTURE_00",
+            "tracking_number": "1Z999",
+            "carrier": "UPS",
+        })
+        self.assertEqual(status, 404)
+
+
 class TokenAuthTest(unittest.TestCase):
     """X-Preflight-Token gate on /track, exercised through the live HTTP server."""
 
@@ -171,7 +258,10 @@ class TokenAuthTest(unittest.TestCase):
             server, "TOKEN_PATH", "/tmp/preflight-token-test-" + os.urandom(4).hex()
         )
         self._token_patch.start()
-        self.httpd = server.make_server(port=0)
+        # fixture=False explicitly: make_server() would otherwise read
+        # PREFLIGHT_FIXTURE from the environment and silently switch modes
+        # when pytest runs with the variable exported.
+        self.httpd = server.make_server(port=0, fixture=False)
         self.port = self.httpd.server_address[1]
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
         self.thread.start()
@@ -227,6 +317,8 @@ class TokenAuthTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("ok", payload)
         self.assertIn("llm", payload)
+        self.assertIn("fixture", payload)
+        self.assertFalse(payload["fixture"])
 
 
 if __name__ == "__main__":

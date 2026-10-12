@@ -13,6 +13,7 @@ import json
 import os
 import secrets
 import stat
+import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from backend import meaning, paypal, policy, rules
@@ -20,6 +21,106 @@ from backend import meaning, paypal, policy, rules
 TOKEN_PATH = os.path.expanduser("~/.config/studio/preflight-token")
 HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
+FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
+
+# --- fixture mode (judge-runnable path without PayPal credentials) -----------
+# Enabled via `python3 -m backend.server --fixture` or PREFLIGHT_FIXTURE=1.
+# In fixture mode /check resolves order_id/capture_id against
+# backend/fixtures/order_*.json + capture_*.json instead of the live API, and
+# /track appends to an in-memory tracker list so the register→re-check loop
+# works end-to-end. /track still requires X-Preflight-Token (same auth path).
+_fixture_mode = False
+_fixture_orders = {}     # order_id -> order fixture dict
+_fixture_captures = {}   # capture_id -> capture fixture dict
+_fixture_trackers = {}   # capture_id -> [tracker dict, ...] (in-memory)
+
+
+def _load_fixtures():
+    for fn in os.listdir(FIXTURE_DIR):
+        path = os.path.join(FIXTURE_DIR, fn)
+        if fn.startswith("order_") and fn.endswith(".json"):
+            with open(path) as f:
+                order = json.load(f)
+            _fixture_orders[order.get("id")] = order
+        elif fn.startswith("capture_") and fn.endswith(".json"):
+            with open(path) as f:
+                capture = json.load(f)
+            _fixture_captures[capture.get("id")] = capture
+
+
+def _fixture_first_capture_id(order):
+    for unit in order.get("purchase_units") or []:
+        captures = (unit.get("payments") or {}).get("captures") or []
+        if captures:
+            return captures[0].get("id")
+    return None
+
+
+def _fixture_handle_check(body):
+    """Mirror handle_check's resolution order against fixture data."""
+    order_id = body.get("order_id")
+    capture_id = body.get("capture_id")
+
+    if not order_id and not capture_id:
+        return 400, {"error": "capture_id or order_id is required"}
+
+    if order_id and not capture_id:
+        order = _fixture_orders.get(order_id)
+        if order is not None:
+            capture_id = _fixture_first_capture_id(order)
+        if capture_id is None:
+            return 404, {"error": "could not resolve capture_id from order_id (fixture)"}
+
+    if not order_id:
+        capture = _fixture_captures.get(capture_id)
+        if capture is not None:
+            order_id = (
+                (capture.get("supplementary_data") or {})
+                .get("related_ids", {}).get("order_id")
+            )
+
+    if not order_id:
+        return 404, {"error": "could not resolve order_id from capture_id (fixture)"}
+
+    order = _fixture_orders.get(order_id)
+    if order is None:
+        return 404, {"error": f"no fixture order for order_id={order_id}"}
+
+    trackers = _fixture_trackers.get(capture_id, [])
+
+    semantic_result = meaning.run(order)
+    semantic = semantic_result["semantic"] if semantic_result["ran"] else None
+
+    verdict = rules.evaluate(order, trackers, semantic)
+    return 200, verdict
+
+
+def _fixture_handle_track(body):
+    """Mirror handle_track's validation, then append to the in-memory store."""
+    capture_id = body.get("capture_id")
+    tracking_number = body.get("tracking_number")
+    carrier = body.get("carrier")
+    carrier_name_other = body.get("carrier_name_other")
+
+    if not capture_id or not tracking_number or not carrier:
+        return 400, {"error": "capture_id, tracking_number and carrier are required"}
+    if carrier not in policy.CARRIERS:
+        return 400, {"error": f"carrier must be one of {policy.CARRIERS}"}
+    if carrier == "OTHER" and not carrier_name_other:
+        return 400, {"error": "carrier_name_other is required when carrier is OTHER"}
+    if capture_id not in _fixture_captures:
+        return 404, {"error": f"unknown capture_id in fixture mode: {capture_id}"}
+
+    tracker = {
+        "transaction_id": capture_id,
+        "tracking_number": tracking_number,
+        "status": "SHIPPED",
+        "carrier": carrier,
+    }
+    if carrier_name_other is not None:
+        tracker["carrier_name_other"] = carrier_name_other
+    _fixture_trackers.setdefault(capture_id, []).append(tracker)
+    return 200, {"trackers": _fixture_trackers[capture_id]}
 
 
 def generate_token():
@@ -63,6 +164,8 @@ def handle_check(body):
 
     Returns (status_code, response_dict).
     """
+    if _fixture_mode:
+        return _fixture_handle_check(body)
     order_id = body.get("order_id")
     capture_id = body.get("capture_id")
 
@@ -106,6 +209,8 @@ def handle_track(body):
     Returns (status_code, response_dict). Token check happens in the handler
     (needs request headers, not just the body).
     """
+    if _fixture_mode:
+        return _fixture_handle_track(body)
     capture_id = body.get("capture_id")
     tracking_number = body.get("tracking_number")
     carrier = body.get("carrier")
@@ -153,7 +258,11 @@ class PreflightHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/health":
-            self._send_json(200, {"ok": True, "llm": meaning.llm_available()})
+            self._send_json(200, {
+                "ok": True,
+                "llm": meaning.llm_available(),
+                "fixture": _fixture_mode,
+            })
             return
         self._send_json(404, {"error": "not found"})
 
@@ -182,14 +291,28 @@ class PreflightHandler(BaseHTTPRequestHandler):
         self._send_json(404, {"error": "not found"})
 
 
-def make_server(port=None):
+def make_server(port=None, fixture=None):
+    global _fixture_mode
+    if fixture is None:
+        fixture = os.environ.get("PREFLIGHT_FIXTURE", "").lower() in ("1", "true", "yes")
+    _fixture_mode = bool(fixture)
+    if _fixture_mode:
+        _load_fixtures()
     port = port or int(os.environ.get("PREFLIGHT_PORT", DEFAULT_PORT))
     generate_token()
     return HTTPServer((HOST, port), PreflightHandler)
 
 
 def main():
-    server = make_server()
+    fixture = "--fixture" in sys.argv
+    server = make_server(fixture=fixture)
+    if fixture:
+        print(
+            f"preflight-checker fixture mode — {len(_fixture_orders)} orders, "
+            f"{len(_fixture_captures)} captures loaded from {FIXTURE_DIR}",
+            file=sys.stderr,
+        )
+        print(f"token written to {TOKEN_PATH}", file=sys.stderr)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
