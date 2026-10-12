@@ -60,7 +60,7 @@
 ## 撮影手順(再現用)
 
 ```bash
-cd paypal-ai-hack-2026
+cd preflight-for-paypal
 npm install                    # playwright (devDependency)
 node scratch/record_demo.cjs   # fixture server(8765)を内部起動→録画→内容アサーション→demo/demo.webm にリネーム
 # demo/subtitles_en.srt をYouTubeの字幕としてアップロード(手動)

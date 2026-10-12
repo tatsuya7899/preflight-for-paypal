@@ -1,4 +1,6 @@
-# paypal-ai-hack-2026 — 外に出すもの: PayPal AI Hackathon 2026への提出物(締切 2026-11-12)
+# Preflight for PayPal
+
+PayPal AI Hackathon 2026 submission.
 
 ## For judges — run it yourself (English)
 
@@ -54,7 +56,8 @@ The backend ships with real API responses captured from a PayPal sandbox
 no network calls to PayPal.
 
 ```bash
-cd paypal-ai-hack-2026
+git clone https://github.com/tatsuya7899/preflight-for-paypal.git
+cd preflight-for-paypal
 python3 -m backend.server --fixture
 # → "fixture mode — 6 orders, 6 captures loaded"
 # → a local auth token is written to ~/.config/preflight/preflight-token
