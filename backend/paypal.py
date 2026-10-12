@@ -16,7 +16,11 @@ import urllib.error
 import urllib.request
 
 BASE = "https://api-m.sandbox.paypal.com"
-ENV_PATH = os.path.expanduser("~/.config/studio/paypal-sandbox.env")
+# ~/.config/studio/ is the author's pre-existing config dir; new installs use
+# the neutral ~/.config/preflight/ instead.
+_LEGACY_ENV = os.path.expanduser("~/.config/studio/paypal-sandbox.env")
+ENV_PATH = _LEGACY_ENV if os.path.exists(_LEGACY_ENV) else \
+    os.path.expanduser("~/.config/preflight/paypal-sandbox.env")
 _CTX = ssl.create_default_context()
 
 

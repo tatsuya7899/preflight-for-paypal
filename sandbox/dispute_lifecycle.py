@@ -15,7 +15,10 @@ from pathlib import Path
 BASE = "https://api-m.sandbox.paypal.com"
 
 vals = {}
-for line in (Path.home() / ".config" / "studio" / "paypal-sandbox.env").read_text().splitlines():
+_LEGACY_ENV = Path.home() / ".config" / "studio" / "paypal-sandbox.env"
+_ENV = _LEGACY_ENV if _LEGACY_ENV.exists() else \
+    Path.home() / ".config" / "preflight" / "paypal-sandbox.env"
+for line in _ENV.read_text().splitlines():
     line = line.strip()
     if line and not line.startswith("#") and "=" in line:
         k, v = line.split("=", 1)

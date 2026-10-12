@@ -99,7 +99,7 @@ paypal-orders-api, paypal-shipping-trackers-api, paypal-disputes-api, chrome-ext
 - **Judge quickstart(必要ならAdditional info欄へ)**:
 
 ```text
-Quickstart (no PayPal account, ~2 min): `python3 -m backend.server --fixture` → paste the token from `~/.config/studio/preflight-token` into the extension options → open the side panel, check capture `3J366679AY2283450`. Full steps: README §Option A.
+Quickstart (no PayPal account, ~2 min): `python3 -m backend.server --fixture` → paste the token from `~/.config/preflight/preflight-token` into the extension options → open the side panel, check capture `3J366679AY2283450`. Full steps: README §Option A.
 ```
 
 ## 提出前の人間作業(APIではできない分)

@@ -1,7 +1,7 @@
 // options.js — minimal settings page.
 //
 // Design source: SPEC-preflight-checker_design.md
-//   - "非機能": "トークンはserver起動時に生成して~/.config/studio/preflight-token
+//   - "非機能": "トークンはserver起動時に生成して~/.config/preflight/preflight-token
 //     に書き、拡張のoptionsページに人間が1回貼る"
 
 const tokenInput = document.getElementById("token");

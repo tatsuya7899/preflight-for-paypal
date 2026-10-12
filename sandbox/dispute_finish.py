@@ -17,7 +17,10 @@ def api(method, path, token=None, payload=None):
         return {"_http_error": e.code, "_body": e.read().decode()[:600]}
 
 creds = {}
-for ln in open(os.path.expanduser("~/.config/studio/paypal-sandbox.env")):
+_LEGACY_ENV = os.path.expanduser("~/.config/studio/paypal-sandbox.env")
+_ENV = _LEGACY_ENV if _LEGACY_ENV.exists() else \
+    os.path.expanduser("~/.config/preflight/paypal-sandbox.env")
+for ln in open(_ENV):
     if "=" in ln and not ln.startswith("#"):
         k, v = ln.strip().split("=", 1)
         creds[k.strip()] = v.strip().strip("'\"")

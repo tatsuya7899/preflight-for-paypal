@@ -60,7 +60,7 @@ class _LiveServerBase(unittest.TestCase):
         self.httpd.server_close()
         self.thread.join(timeout=2)
         # Remove the throwaway token BEFORE stopping the patch — after stop(),
-        # server.TOKEN_PATH is the real ~/.config/studio/preflight-token again
+        # server.TOKEN_PATH is the real token path under ~/.config/ again
         # and removing it would silently break auth on a running dev instance.
         try:
             os.remove(server.TOKEN_PATH)

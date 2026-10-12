@@ -4,7 +4,10 @@ const path = require("path");
 const fs = require("fs");
 const { chromium } = require("playwright");
 const BASE = "http://127.0.0.1:8765";
-const token = fs.readFileSync(process.env.HOME + "/.config/studio/preflight-token", "utf8").trim();
+const _LEGACY = process.env.HOME + "/.config/studio/preflight-token";
+const tokenFile = fs.existsSync(_LEGACY) ? _LEGACY
+  : process.env.HOME + "/.config/preflight/preflight-token";
+const token = fs.readFileSync(tokenFile, "utf8").trim();
 
 (async () => {
   const browser = await chromium.launch();

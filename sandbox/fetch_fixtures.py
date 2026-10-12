@@ -8,7 +8,10 @@ OUT = os.path.join(os.path.dirname(__file__), "..", "backend", "fixtures")
 os.makedirs(OUT, exist_ok=True)
 
 creds = {}
-for ln in open(os.path.expanduser("~/.config/studio/paypal-sandbox.env")):
+_LEGACY_ENV = os.path.expanduser("~/.config/studio/paypal-sandbox.env")
+_ENV = _LEGACY_ENV if os.path.exists(_LEGACY_ENV) else \
+    os.path.expanduser("~/.config/preflight/paypal-sandbox.env")
+for ln in open(_ENV):
     if "=" in ln and not ln.startswith("#"):
         k, v = ln.strip().split("=", 1)
         creds[k.strip()] = v.strip().strip("'\"")

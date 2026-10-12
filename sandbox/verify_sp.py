@@ -7,7 +7,8 @@ Gate-0 condition 1 for SP-1 (seller-protection-checker):
 Flow: token -> create 3 orders -> user approves each in browser (sandbox buyer)
       -> poll until APPROVED -> capture -> print seller_protection.status.
 
-Credentials: read from ~/.config/studio/paypal-sandbox.env (never printed).
+Credentials: read from ~/.config/preflight/paypal-sandbox.env (never printed;
+legacy ~/.config/studio/ path still honored when it exists).
 Buyer approval needs a sandbox *personal* account login
 (Developer Dashboard -> Testing Tools -> Sandbox Accounts -> personal account password).
 """
@@ -20,7 +21,9 @@ import urllib.error
 from pathlib import Path
 
 BASE = "https://api-m.sandbox.paypal.com"
-ENV_FILE = Path.home() / ".config" / "studio" / "paypal-sandbox.env"
+_LEGACY_ENV = Path.home() / ".config" / "studio" / "paypal-sandbox.env"
+ENV_FILE = _LEGACY_ENV if _LEGACY_ENV.exists() else \
+    Path.home() / ".config" / "preflight" / "paypal-sandbox.env"
 
 
 def load_env(path):

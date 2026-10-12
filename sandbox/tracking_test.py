@@ -6,7 +6,10 @@ BASE = "https://api-m.sandbox.paypal.com"
 CTX = ssl.create_default_context()
 
 creds = {}
-for ln in open(os.path.expanduser("~/.config/studio/paypal-sandbox.env")):
+_LEGACY_ENV = os.path.expanduser("~/.config/studio/paypal-sandbox.env")
+_ENV = _LEGACY_ENV if os.path.exists(_LEGACY_ENV) else \
+    os.path.expanduser("~/.config/preflight/paypal-sandbox.env")
+for ln in open(_ENV):
     if "=" in ln and not ln.startswith("#"):
         k, v = ln.strip().split("=", 1)
         creds[k.strip()] = v.strip().strip("'\"")

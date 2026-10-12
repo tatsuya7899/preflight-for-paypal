@@ -28,7 +28,7 @@
 
 ## 既存アーキテクチャとの整合
 
-- 既存のデータモデル/命名/依存の向きと矛盾しないか: 既存`sandbox/*.py`はurllib+stdlibのみ・env読込みパターン(`~/.config/studio/paypal-sandbox.env`)をそのまま`backend/paypal.py`に移植。新規依存は入れない
+- 既存のデータモデル/命名/依存の向きと矛盾しないか: 既存`sandbox/*.py`はurllib+stdlibのみ・env読込みパターン(`~/.config/{studio→preflight}/paypal-sandbox.env`・レガシーフォールバック付き)をそのまま`backend/paypal.py`に移植。新規依存は入れない
 - SSOT(同じ目的の実装・文書が2つにならないか): sandbox/は検証プローブのまま保存(動く記録)。製品コードはbackend/extensionに新設・混ぜない
 
 ## ID契約(P0-1)
@@ -76,7 +76,7 @@
 ## 非機能(性能・権限・セキュリティ・ログ)
 
 - 権限: backendは127.0.0.1のみlisten。拡張のhost_permissionsは`127.0.0.1`+`*.sandbox.paypal.com`のみ(content scriptのmatchも同じ・本番paypal.comには注入しない=P1-4c)。**backendへの全fetchはpanel.js/service workerからのみ**
-- 認証: `POST /track`は`X-Preflight-Token`ヘッダ必須(P1-5)。トークンはserver起動時に生成して`~/.config/studio/preflight-token`に書き、拡張のoptionsページに人間が1回貼る(127.0.0.1はブラウザ内の全サイトから到達可能のため)
+- 認証: `POST /track`は`X-Preflight-Token`ヘッダ必須(P1-5)。トークンはserver起動時に生成して`~/.config/preflight/preflight-token`に書き、拡張のoptionsページに人間が1回貼る(127.0.0.1はブラウザ内の全サイトから到達可能のため)
 - 秘匿: client_secret・LLMキー・トークンはenvファイルのみ・レスポンス・ログに出さない(既存スクリプトと同じ)
 - 失敗時: ①backend停止→拡張は"backend offline"表示 ②LLM不可(env無し・実行時失敗=quota/ネットワーク断も同じ)→`meaning.ran=false`で退化(P2-6) ③trackers POSTエラー→API応答をそのまま表示 ④注文ID同定失敗→手動入力フィールドを常時用意(**デモ再現性のため自動抽出に依存しない**)
 - 性能: 1注文チェック=OAuth1回+order GET1回+trackers GET1回+LLM1回以内(+初回ID解決時capture GET1回)(P2-1)

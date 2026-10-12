@@ -14,7 +14,12 @@ const { chromium } = require("playwright");   // devDependency — see package.j
 const ROOT = path.resolve(__dirname, "..");
 const PANEL = "file://" + path.join(ROOT, "extension/panel.html");
 const OUT_DIR = path.join(ROOT, "demo");
-const TOKEN_PATH = path.join(os.homedir(), ".config/studio/preflight-token");
+// Same resolution as backend/server.py: keep a legacy studio-dir token if it
+// exists, otherwise the neutral ~/.config/preflight/ path.
+const _LEGACY_TOKEN = path.join(os.homedir(), ".config/studio/preflight-token");
+const TOKEN_PATH = fs.existsSync(_LEGACY_TOKEN)
+  ? _LEGACY_TOKEN
+  : path.join(os.homedir(), ".config/preflight/preflight-token");
 // 8765, not the default 8000: a `zenn preview` dev server squats on *:8000 on
 // this machine and (via IPv6 v4-mapped sockets) steals some 127.0.0.1:8000
 // connections, which produced a false-positive /health and a 403 on /track.

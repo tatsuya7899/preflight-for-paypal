@@ -8,7 +8,9 @@ import urllib.error
 from pathlib import Path
 
 BASE = "https://api-m.sandbox.paypal.com"
-ENV_FILE = Path.home() / ".config" / "studio" / "paypal-sandbox.env"
+_LEGACY_ENV = Path.home() / ".config" / "studio" / "paypal-sandbox.env"
+ENV_FILE = _LEGACY_ENV if _LEGACY_ENV.exists() else \
+    Path.home() / ".config" / "preflight" / "paypal-sandbox.env"
 
 vals = {}
 for line in ENV_FILE.read_text().splitlines():
