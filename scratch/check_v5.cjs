@@ -1,7 +1,8 @@
 // check_v5.cjs — real interaction verification for panel_v5.html
-const { chromium } = require('/Users/tatsuyasasaki/Developer/tatsuyasasaki-portfolio/node_modules/playwright');
-const URL = 'file:///Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/scratch/panel_v5.html';
-const OUT = '/Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/scratch/shots';
+const path = require('path');
+const { chromium } = require('playwright');
+const URL = 'file://' + path.join(__dirname, 'panel_v5.html');
+const OUT = path.join(__dirname, 'shots');
 const ok = [], ng = [];
 const t = (name, cond) => (cond ? ok : ng).push(name);
 

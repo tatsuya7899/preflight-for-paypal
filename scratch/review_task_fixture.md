@@ -1,16 +1,16 @@
 # レビュー観点: fixtureモード(tasks S1 — 審査員実行経路)
 
 対象ファイル(今回新設のfixtureモードを含む全体を読んでレビューせよ。
-未コミット差分を見たければ `git -C /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026 diff HEAD` を実行してよい):
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/backend/server.py (fixture分岐+索引+起動フラグ)
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/extension/panel.js (health fixture表示)
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/tests/test_server.py (FixtureModeTest)
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/README.md (審査員手順)
+未コミット差分を見たければ `git -C <repo> diff HEAD` を実行してよい):
+- <repo>/backend/server.py (fixture分岐+索引+起動フラグ)
+- <repo>/extension/panel.js (health fixture表示)
+- <repo>/tests/test_server.py (FixtureModeTest)
+- <repo>/README.md (審査員手順)
 
 参照(契約の正本):
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/backend/rules.py (evaluate()のverdict形)
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/backend/paypal.py (live経路の解決順)
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/backend/fixtures/ (実fixture)
+- <repo>/backend/rules.py (evaluate()のverdict形)
+- <repo>/backend/paypal.py (live経路の解決順)
+- <repo>/backend/fixtures/ (実fixture)
 
 ## レビュー観点(敵対的に)
 1. **live経路との等価性**: fixture分岐はpaypal.pyの解決順(order_id優先→capture解決→order取得)と論理等価か。fixtureモードでlive経路のペイロード契約が崩れないか(応答キー・エラー形)

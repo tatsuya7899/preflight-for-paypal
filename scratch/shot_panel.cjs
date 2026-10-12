@@ -1,7 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const { chromium } = require(path.join(
-  "/Users/tatsuyasasaki/Developer/tatsuyasasaki-portfolio/node_modules", "playwright"));
+const { chromium } = require("playwright");
 
 const PANEL = "file://" + path.resolve(__dirname, "../extension/panel.html");
 const VERDICT = JSON.parse(fs.readFileSync(path.resolve(__dirname, "verdict_F.json"), "utf8")).verdict;

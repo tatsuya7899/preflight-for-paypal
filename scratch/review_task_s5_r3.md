@@ -1,7 +1,6 @@
 Adversarial review — ROUND 3: verify the round-2 fixes themselves.
-Repo: _incubator/paypal-ai-hack-2026. Prior reports:
-_ops/state/ext_review/20261012-141123-408880_report.md
-_ops/state/ext_review/20261012-142416-175931_report.md
+Repo: this repository. Prior reports: independent-review rounds 1 and 2
+(external ext_review process, 2026-10-12).
 
 Round-2 fixes to attack (all committed as 2aafe45):
 

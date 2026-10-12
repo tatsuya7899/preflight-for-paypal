@@ -1,15 +1,15 @@
 # レビュー観点: extension/panel.html + panel.js(tasks#11 拡張パネル実装)
 
 対象ファイル:
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/extension/panel.html
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/extension/panel.js
+- <repo>/extension/panel.html
+- <repo>/extension/panel.js
 
 参照(契約の正本):
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/extension/background.js (check/track/healthメッセージ)
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/extension/content.js (extract応答形)
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/backend/rules.py (evaluate()のverdict形)
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/backend/server.py (/check,/trackの応答形・エラー形)
-- /Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/scratch/verdict_F.json (実verdict例・修正済み生成物)
+- <repo>/extension/background.js (check/track/healthメッセージ)
+- <repo>/extension/content.js (extract応答形)
+- <repo>/backend/rules.py (evaluate()のverdict形)
+- <repo>/backend/server.py (/check,/trackの応答形・エラー形)
+- <repo>/scratch/verdict_F.json (実verdict例・修正済み生成物)
 
 ## レビュー観点(敵対的に)
 1. **メッセージ契約の一致**: panel.jsが送るペイロードがbackground.js/content.jsの受け側と完全一致するか(キー名・型)

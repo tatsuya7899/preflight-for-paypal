@@ -1,6 +1,7 @@
 // debug_width.cjs — find elements extending past the 360px viewport
-const { chromium } = require('/Users/tatsuyasasaki/Developer/tatsuyasasaki-portfolio/node_modules/playwright');
-const URL = 'file:///Users/tatsuyasasaki/Developer/_incubator/paypal-ai-hack-2026/scratch/panel_v5.html';
+const path = require('path');
+const { chromium } = require('playwright');
+const URL = 'file://' + path.join(__dirname, 'panel_v5.html');
 (async () => {
   const b = await chromium.launch();
   const page = await (await b.newContext({ viewport: { width: 360, height: 700 } })).newPage();
